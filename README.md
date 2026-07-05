@@ -29,7 +29,7 @@ cloud first**. Full walkthrough:
 Plug the tablet in over USB and run:
 
 ```sh
-git clone https://github.com/YOUR-USER/remagic
+git clone https://github.com/maximerivest/remagic
 cd remagic
 ./install.sh
 ```
@@ -125,12 +125,12 @@ Once your tablet is open, here's what we build on top of it. Each is its own
 repo; drop any of them into `/home/root/xovi/exthome/appload/<app>/` and tap
 **Reload** in AppLoad.
 
-- **[Riddle](https://github.com/YOUR-USER/riddle)** — an enchanted diary. Write
+- **[Riddle](https://github.com/maximerivest/riddle)** — an enchanted diary. Write
   with the pen; after a pause the page drinks your ink and an answer writes
   itself back in a flowing hand. A magical blackboard, powered by an LLM.
-- **[Paperterm](https://github.com/YOUR-USER/paperterm)** — a real terminal
+- **[Paperterm](https://github.com/maximerivest/paperterm)** — a real terminal
   emulator with pixel-wise partial e-ink updates. A shell on your tablet.
-- **[Quill](https://github.com/YOUR-USER/quill)** — the low-level takeover
+- **[Quill](https://github.com/maximerivest/quill)** — the low-level takeover
   display host the apps stand on: it drives the e-ink panel directly through the
   vendor waveform engine for instant-ink latency. More a library than an app.
 
