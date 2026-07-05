@@ -1,103 +1,194 @@
-# Turning on Developer Mode
+# Turning on Developer Mode — a picture walkthrough
 
 Developer mode unlocks your reMarkable Paper Pro so you can run your own
-software on it — SSH in as root, install launchers like AppLoad, and load the
-apps in this ecosystem. This guide walks you through it in plain language.
+software on it (SSH as root, launchers like AppLoad, and the apps in this
+ecosystem). This is a step-by-step guide with a photo for every screen, so you
+can follow along and know you're in the right place.
 
-> **Read this first — the one thing that surprises everyone.**
-> Enabling developer mode **erases everything on the tablet** (a factory
-> reset). This is a security measure built into the device by reMarkable, not
-> something any tool can remove. Your notebooks are safe **if** they are synced
-> to the reMarkable cloud first — they download again afterward. Anything not
-> synced is gone. **Back up before you start.**
+> ### ⚠️ Read this first — the one surprise
+> Turning on developer mode **erases everything on the tablet** (a factory
+> reset). It's a security measure built in by reMarkable — no tool can skip it.
+> **Your notebooks are safe if they're synced to the reMarkable cloud first**;
+> they download again afterward. Anything not synced is gone.
+> **Sync (or back up) before you start.**
 
 ---
 
 ## Before you begin
 
-1. **Charge the tablet** to at least 30%. Don't do this on a dying battery.
-2. **Sync your notebooks.** Open each notebook so it uploads, or confirm the
-   cloud sync indicator is settled. If you don't use the reMarkable cloud,
-   copy anything precious off the device first (via the USB web interface at
-   `http://10.11.99.1` while plugged in, or the desktop/mobile app).
-3. **Know that this is reversible.** You can turn developer mode back off later
-   (through reMarkable's recovery application; that also factory-resets),
-   returning the device to its stock, secure state. Developer mode does **not**
-   void your hardware warranty, but reMarkable won't support software problems
-   you introduce.
+- [ ] **Charge to at least 30%.** Don't do this on a low battery.
+- [ ] **Sync your notebooks to the cloud** (or copy them off via the USB web
+      interface at `http://10.11.99.1` while plugged in). The reset erases the
+      device; only synced/backed-up files survive.
+- [ ] **Have ~10 minutes.** The reset and first-time setup take a little while.
+
+> **Good to know:** developer mode does **not** void your hardware warranty
+> (reMarkable just won't support software problems you introduce), and it's
+> reversible later through their recovery tool.
 
 ---
 
-## Enable it
+<!--
+  PHOTO GUIDE FOR MAXIME — how to make this shine:
+  • Take each photo straight-on, good light, no glare on the e-ink.
+  • Frame the whole screen; a little bezel is fine (helps orient people).
+  • Name files EXACTLY as referenced below and drop them in docs/img/.
+  • If a screen's wording differs on your OS version, tweak the "You'll see"
+    line to match your photo — the photo is the source of truth for the reader.
+  • A short 10–20s screen-record split into stills also works.
+-->
 
-On the tablet, follow this path (reMarkable's official wording):
+## Step 1 — Open Settings
 
-> **Settings → General → Paper Tablet → Software → Advanced → Developer Mode**
+Tap your account icon (top-left of the home screen), then the gear / **Settings**.
 
-1. Tap **Developer mode**, then **Enable**.
-2. Read the warning. reMarkable states plainly: *"enabling developer mode also
-   performs a factory reset … data on the device at the time of enabling
-   developer mode will be lost."* It also warns that a notice appears at **every
-   boot** — that's normal and cannot be removed; it's part of the security
-   design.
-3. Confirm. The tablet resets and reboots into developer mode. Set it up again
-   like a new device (sign in, let your notebooks sync back down).
+![Opening Settings on the reMarkable home screen](img/01-open-settings.jpg)
 
-> Developer mode is specific to the Paper Pro line here; it isn't offered on the
-> reMarkable 1 and 2.
-
-That's the whole manual part. Everything after this — SSH, launchers, apps —
-is automated by the installer in this repo.
+> _You'll see:_ the main Settings screen with a left-hand list (General,
+> Storage, Security, …).
 
 ---
 
-## Connect over USB
+## Step 2 — General → Software
 
-Developer mode gives you a root shell over a USB network connection.
+In Settings, open **General**, then find **Software** (this is where the OS
+version and advanced options live).
 
-1. Plug the tablet into your computer with the USB cable.
-2. The tablet appears as a USB network device at **`10.11.99.1`**.
-3. Find the SSH password on the tablet: **Settings → General → Help →
-   Copyrights and licenses** (or the About screen) shows a
-   **GPLv3 Compliance / SSH** section with a one-time password and the
-   `root@10.11.99.1` address.
-4. Test it:
+![Settings → General → Software](img/02-general-software.jpg)
 
-   ```sh
-   ssh root@10.11.99.1
-   ```
-
-   Enter that password when asked. You're in.
-
-> **Tip:** the installer sets up key-based login for you, so this is the last
-> time you'll need to type that password.
+> _You'll see:_ your current software version number and, below it, an
+> **Advanced** section.
+>
+> _Exact path (reMarkable's wording):_
+> **Settings → General → Paper Tablet → Software → Advanced → Developer Mode**.
+> The labels shift slightly between OS updates — follow the photo.
 
 ---
 
-## What "unlocked" actually means (and doesn't)
+## Step 3 — Advanced → Developer Mode
 
-Developer mode relaxes the parts of the device's security that keep *you* out
-of *your own* tablet's software:
+Open **Advanced**, then tap **Developer mode**.
 
-- ✅ You get **root SSH**.
-- ✅ You can **modify the root filesystem** and run your own programs.
-- ✅ You can **load a custom kernel** (advanced; not needed for apps).
+![The Advanced menu with Developer mode](img/03-advanced-developer-mode.jpg)
 
-It deliberately leaves a few things locked, and these are **not** bugs to work
-around — they're what makes developer mode safe and reversible:
+> _You'll see:_ a Developer mode screen explaining that it lets you run custom
+> software and that the device will no longer verify software authenticity.
 
-- 🔒 The **bootloader stays signed** (you can't replace the earliest boot code).
+---
+
+## Step 4 — Read the warning, then Enable
+
+Tap **Enable**. reMarkable now shows the important warning.
+
+![The developer-mode warning about the factory reset](img/04-enable-warning.jpg)
+
+> _You'll see (reMarkable's own words):_ *"enabling developer mode also performs
+> a factory reset … data on the device at the time of enabling developer mode
+> will be lost."* It also warns that a small notice will appear on **every boot**
+> from now on — that's normal and can't be removed (it's part of the security
+> design).
+>
+> **This is the point of no return for un-synced data.** If you're not sure your
+> notebooks are in the cloud, stop and sync first.
+
+---
+
+## Step 5 — Confirm (press the power button twice)
+
+To confirm, **press the physical power button twice**, as the screen instructs.
+The tablet resets and reboots into developer mode.
+
+![Confirming with the power button](img/05-confirm-power-button.jpg)
+
+> _You'll see:_ the device restart and begin **first-time setup** again — just
+> like a new tablet. Go through setup, connect to Wi-Fi, and (optionally) sign
+> back into your reMarkable account so your notebooks download again.
+
+---
+
+## Step 6 — Find your SSH password
+
+Once you're back on the home screen, go to
+**Settings → General → Help → Copyrights and licenses** (or the About screen).
+Scroll to the **GPLv3 Compliance / SSH** section.
+
+![Where to find the SSH password and address](img/06-ssh-password.jpg)
+
+> _You'll see:_ a one-time SSH **password** and the address **`root@10.11.99.1`**.
+> You'll need this the first time you connect. Keep this screen handy for the
+> next step.
+
+---
+
+## Step 7 — Connect from your computer
+
+Plug the tablet into your computer with the USB-C cable. It appears as a small
+USB network device at **`10.11.99.1`**. Test the connection:
+
+```sh
+ssh root@10.11.99.1
+```
+
+Enter the password from Step 6 when asked. You're in. 🎉
+
+![A successful SSH connection from a laptop](img/07-ssh-connected.jpg)
+
+> You only type that password once — the installer sets up a key so you never
+> need it again.
+
+---
+
+## You're done — now the fun part
+
+Developer mode is on. Head back to the **[README](../README.md)** and run the
+one-command installer:
+
+```sh
+./install.sh
+```
+
+It sets up passwordless SSH, installs the AppLoad launcher, and gets you ready
+to add apps — no more terminal wrangling.
+
+---
+
+## What "unlocked" really means (and what stays locked)
+
+Developer mode relaxes the parts of security that keep *you* out of *your own*
+device's software:
+
+- ✅ Root **SSH** access.
+- ✅ **Modify the filesystem** and run your own programs.
+- ✅ Load a **custom kernel** (advanced; not needed for apps).
+
+It deliberately keeps a few things locked — and these are *features*, not
+obstacles, because they're what makes developer mode safe and reversible:
+
+- 🔒 The **bootloader stays signed** (the earliest boot code can't be replaced).
 - 🔒 **Disk encryption stays on** (your data is still encrypted at rest).
-- 🔒 The **boot notice** and the **enable-time reset** stay.
+- 🔒 The **boot notice** and the **one-time reset** stay.
 
-If a tool ever promises to remove the reset or the boot notice, be skeptical:
-doing so means defeating the device's secure boot, which breaks on every OS
-update and puts your device (and warranty status) at risk.
+If any tool ever claims to remove the reset or the boot notice, be skeptical —
+that means defeating secure boot, which breaks on every OS update and puts your
+device (and warranty) at risk.
 
 ---
 
-## Next step
+## Changed your mind? Leaving developer mode
 
-Head back to the [README](../README.md) and run the installer. One command
-sets up SSH keys, installs the AppLoad launcher, and gets you ready to add
-apps — no terminal wrangling required.
+You can return to a clean, stock device using reMarkable's **recovery tool**
+over USB. On Linux (x86_64):
+
+```sh
+# Download reMarkable's official Linux recovery tool
+curl -fLO https://device-recovery.cloud.remarkable.com/host/1.14.1/x86_64-unknown-linux-gnu-public/bin/rm_recover
+chmod +x rm_recover
+
+# Put the tablet in recovery mode: hold power ~30s, release, then a short press.
+./rm_recover discover-device      # expect: status:OK
+./rm_recover reset                # wipe + reinstall (or 'restore' to keep data)
+```
+
+Both `reset` and `restore` **also turn developer mode off**, returning the
+device to its secure state. (Full details:
+[reMarkable's recovery docs](https://developer.remarkable.com/documentation/recovery-for-linux-host).)
