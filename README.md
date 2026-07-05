@@ -1,0 +1,143 @@
+# rmpp-kit
+
+**The easy on-ramp for tinkering on the reMarkable Paper Pro.**
+
+Turn on developer mode, run one command, and you have the AppLoad launcher and a
+place to run your own apps — no terminal wrangling. Built to lower the barrier
+for builders and tinkerers. Open source, MIT licensed.
+
+> Works on the **reMarkable Paper Pro** (Ferrari / Chiappa / Tatsu — i.MX8MM,
+> aarch64). Not for the reMarkable 1 or 2.
+
+---
+
+## Two steps
+
+### 1. Turn on developer mode
+
+This is the only manual part, and it **erases the tablet** (a reMarkable
+security requirement — no tool can skip it), so **sync your notebooks to the
+cloud first**. Full walkthrough:
+
+**→ [docs/DEVELOPER-MODE.md](docs/DEVELOPER-MODE.md)**
+
+### 2. Run the installer
+
+Plug the tablet in over USB and run:
+
+```sh
+git clone https://github.com/YOUR-USER/rmpp-kit
+cd rmpp-kit
+./install.sh
+```
+
+On Wi-Fi instead of USB:
+
+```sh
+RM_HOST=<tablet-ip> ./install.sh
+```
+
+The installer:
+
+1. **Checks the connection** and confirms it's a Paper Pro in developer mode.
+2. **Installs your SSH key** — no more typing the device password.
+3. **Installs xovi + AppLoad** from official upstream releases.
+4. **Sets up persistence** via [xovi-tripletap](https://github.com/rmitchellscott/xovi-tripletap):
+   **triple-press the power button** to toggle xovi on or off. Survives reboots,
+   needs no computer, and can't bootloop you.
+
+When it finishes, the **AppLoad** launcher appears on your tablet.
+
+---
+
+## Adding apps
+
+AppLoad apps live in `/home/root/xovi/exthome/appload/<app>/`. An "external" app
+(wrapping any aarch64 binary) needs just two files:
+
+```
+myapp/
+├── external.manifest.json
+└── icon.png
+```
+
+```json
+{
+  "name": "My App",
+  "application": "myapp",
+  "qtfb": true
+}
+```
+
+Copy the folder over and tap **Reload** in AppLoad. Popular ready-made apps:
+KOReader, and anything from the community.
+
+---
+
+## Turning it off
+
+- **Temporarily:** triple-press the power button, or just reboot — you're back
+  to stock reMarkable software instantly. Your apps stay installed.
+- **Fully:** `ssh <device> '/home/root/xovi/stock'`.
+- **Back to a clean tablet:** disable developer mode via reMarkable's recovery
+  application (this factory-resets again).
+
+Nothing here touches the bootloader or your encrypted data. It is designed to be
+safe and reversible.
+
+---
+
+## Advanced: autostart on every boot
+
+By default xovi loads on a power-button triple-press (the safe, recommended
+way). If you want it to load automatically on **every** boot with no press, see
+[`scripts/99-advanced-autostart.sh`](scripts/99-advanced-autostart.sh) — it
+installs a guarded systemd unit with a crash-loop safety net. It's riskier
+(upstream advises against naive autostart on the encrypted device), so it's
+opt-in and separate.
+
+---
+
+## How it works / layout
+
+| Path | What it is |
+|------|-----------|
+| `install.sh` | Top-level installer; runs the steps below in order. |
+| `scripts/lib.sh` | Shared helpers: SSH wrappers, device detection, and `persist_write` (the `/etc`-overlay persistence trick). |
+| `scripts/01-preflight.sh` | Connection + developer-mode + model checks with friendly errors. |
+| `scripts/02-ssh-key.sh` | Passwordless SSH setup (idempotent). |
+| `scripts/03-install-xovi.sh` | Downloads and installs xovi + AppLoad + tripletap. |
+| `scripts/sources.env` | Pinned upstream release URLs (one place to update versions). |
+| `scripts/99-advanced-autostart.sh` | Optional unattended boot autostart. |
+| `docs/DEVELOPER-MODE.md` | The developer-mode walkthrough. |
+
+Re-run `install.sh` after a reMarkable OS update to refresh the pieces an update
+can disturb.
+
+---
+
+## Credits
+
+This kit stands on the work of the reMarkable modding community:
+
+- **[xovi](https://github.com/asivery/xovi)** and
+  **[rm-appload](https://github.com/asivery/rm-appload)** by **asivery** — the
+  function-hooking loader and app host this kit installs.
+- **[xovi-tripletap](https://github.com/rmitchellscott/xovi-tripletap)** by
+  **rmitchellscott** — the power-button persistence.
+- **[vellum](https://github.com/vellum-dev/vellum-cli)** — a fuller package
+  manager for the ecosystem, if you outgrow this kit.
+
+rmpp-kit just wires these together into a one-command, beginner-friendly install.
+Please support the upstream projects.
+
+## License
+
+MIT — see [LICENSE](LICENSE). This installs third-party software under their own
+licenses; it does not redistribute reMarkable's proprietary components.
+
+## Disclaimer
+
+Not affiliated with reMarkable. Developer mode and third-party software are used
+at your own risk. This kit avoids the bootloader and your encrypted data and is
+designed to be reversible, but you are responsible for your device.

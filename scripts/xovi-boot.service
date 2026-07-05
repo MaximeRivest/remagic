@@ -1,0 +1,20 @@
+[Unit]
+Description=Start xovi (AppLoad) automatically at boot
+# xovi lives on the encrypted /home, unlocked late in boot — wait for it.
+Requires=home.mount
+After=home.mount data.mount local-fs.target
+# xochitl.service picks up After=xovi-boot.service via its cached ordering, but
+# we do NOT set Before=xochitl here: xovi/start restarts xochitl itself, so we
+# want xochitl to have started first, then we inject and restart it.
+Wants=xochitl.service
+After=xochitl.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/bash /home/root/xovi/xovi-autostart.sh
+# Safety: if this unit fails we do not want to wedge the boot. oneshot failure
+# is non-fatal to multi-user.target here.
+
+[Install]
+WantedBy=multi-user.target
