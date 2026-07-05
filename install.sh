@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# rmpp-kit — one command to turn a developer-mode reMarkable Paper Pro into a
+# remagic — one command to turn a developer-mode reMarkable Paper Pro into a
 # tinkerer's playground: passwordless SSH, the AppLoad launcher, and crash-safe
 # autostart. Open source. No terminal wrangling for the user beyond running this.
 #
@@ -24,7 +24,7 @@ done
 
 cat <<EOF
 
-  ${C_B}rmpp-kit installer${C_0}
+  ${C_B}remagic installer${C_0}
   ${C_DIM}Empowering builders on the reMarkable Paper Pro.${C_0}
 
   This will, over SSH to ${C_B}$RM_HOST${C_0}:

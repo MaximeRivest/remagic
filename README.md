@@ -1,6 +1,6 @@
-# rmpp-kit
+# ✨ remagic
 
-**The easy on-ramp for tinkering on the reMarkable Paper Pro.**
+**Make your reMarkable Paper Pro magical.**
 
 Turn on developer mode, run one command, and you have the AppLoad launcher and a
 place to run your own apps — no terminal wrangling. Built to lower the barrier
@@ -8,6 +8,9 @@ for builders and tinkerers. Open source, MIT licensed.
 
 > Works on the **reMarkable Paper Pro** (Ferrari / Chiappa / Tatsu — i.MX8MM,
 > aarch64). Not for the reMarkable 1 or 2.
+
+remagic is also the umbrella for a small family of apps that show what the tablet
+can do once it's opened up — see [The remagic family](#the-remagic-family) below.
 
 ---
 
@@ -26,8 +29,8 @@ cloud first**. Full walkthrough:
 Plug the tablet in over USB and run:
 
 ```sh
-git clone https://github.com/YOUR-USER/rmpp-kit
-cd rmpp-kit
+git clone https://github.com/YOUR-USER/remagic
+cd remagic
 ./install.sh
 ```
 
@@ -103,7 +106,7 @@ opt-in and separate.
 | Path | What it is |
 |------|-----------|
 | `install.sh` | Top-level installer; runs the steps below in order. |
-| `scripts/lib.sh` | Shared helpers: SSH wrappers, device detection, and `persist_write` (the `/etc`-overlay persistence trick). |
+| `scripts/lib.sh` | Shared helpers: SSH wrappers, device detection, and `persist_local_to_rootfs` (the `/etc`-overlay persistence trick). |
 | `scripts/01-preflight.sh` | Connection + developer-mode + model checks with friendly errors. |
 | `scripts/02-ssh-key.sh` | Passwordless SSH setup (idempotent). |
 | `scripts/03-install-xovi.sh` | Downloads and installs xovi + AppLoad + tripletap. |
@@ -113,6 +116,26 @@ opt-in and separate.
 
 Re-run `install.sh` after a reMarkable OS update to refresh the pieces an update
 can disturb.
+
+---
+
+## The remagic family
+
+Once your tablet is open, here's what we build on top of it. Each is its own
+repo; drop any of them into `/home/root/xovi/exthome/appload/<app>/` and tap
+**Reload** in AppLoad.
+
+- **[Riddle](https://github.com/YOUR-USER/riddle)** — an enchanted diary. Write
+  with the pen; after a pause the page drinks your ink and an answer writes
+  itself back in a flowing hand. A magical blackboard, powered by an LLM.
+- **[Paperterm](https://github.com/YOUR-USER/paperterm)** — a real terminal
+  emulator with pixel-wise partial e-ink updates. A shell on your tablet.
+- **[Quill](https://github.com/YOUR-USER/quill)** — the low-level takeover
+  display host the apps stand on: it drives the e-ink panel directly through the
+  vendor waveform engine for instant-ink latency. More a library than an app.
+
+Building your own? These are worked examples of an AppLoad app, from a full
+takeover renderer (Quill/Riddle) to a windowed qtfb app (Paperterm).
 
 ---
 
@@ -128,7 +151,7 @@ This kit stands on the work of the reMarkable modding community:
 - **[vellum](https://github.com/vellum-dev/vellum-cli)** — a fuller package
   manager for the ecosystem, if you outgrow this kit.
 
-rmpp-kit just wires these together into a one-command, beginner-friendly install.
+remagic just wires these together into a one-command, beginner-friendly install.
 Please support the upstream projects.
 
 ## License

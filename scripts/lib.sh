@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared helpers for the rmpp-kit installer. Sourced, not run directly.
+# Shared helpers for the remagic installer. Sourced, not run directly.
 #
 # Design goals: no dependencies beyond ssh/scp/curl, friendly output, and every
 # device-side write that must survive a reboot goes through persist_write() —

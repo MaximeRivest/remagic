@@ -9,7 +9,7 @@ step "Setting up passwordless SSH"
 KEY="${RM_SSH_KEY:-$HOME/.ssh/id_ed25519}"
 if [ ! -f "$KEY" ]; then
     info "No SSH key at $KEY — generating one."
-    ssh-keygen -t ed25519 -N '' -f "$KEY" -C "rmpp-kit@$(hostname)" >/dev/null
+    ssh-keygen -t ed25519 -N '' -f "$KEY" -C "remagic@$(hostname)" >/dev/null
     ok "Generated $KEY"
 fi
 PUB="$(cat "$KEY.pub")"
@@ -34,9 +34,9 @@ fi
 
 cat <<EOF
 
-  ${C_DIM}Optional: add a shortcut to ~/.ssh/config so you can just 'ssh rmpp':
+  ${C_DIM}Optional: add a shortcut to ~/.ssh/config so you can just 'ssh remagic':
 
-    Host rmpp
+    Host remagic
         HostName $RM_HOST
         User root
         IdentityFile $KEY${C_0}
