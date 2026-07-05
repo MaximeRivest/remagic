@@ -41,11 +41,15 @@ ok "Message broker activated."
 fetch "$APPLOAD_URL" "$WORK/appload.zip"
 step "Installing the AppLoad launcher"
 rm_scp "$WORK/appload.zip" "$(rm_dest):/tmp/appload.zip"
-# AppLoad is a xovi extension: its .so goes in extensions.d/. The zip may also
-# carry an exthome skeleton; unzip in place and let it populate.
+# ONLY appload.so is a xovi extension → extensions.d/. The zip also carries
+# shims/qtfb-shim*.so (used at runtime for windowed apps) which must NOT go in
+# extensions.d/ or xovi tries to load them as extensions and errors. They live
+# under appload's own exthome data dir. Any exthome/ skeleton is merged too.
 rm_ssh 'cd /tmp && rm -rf appload-unz && mkdir appload-unz && \
         (unzip -oq appload.zip -d appload-unz || busybox unzip -o appload.zip -d appload-unz) && \
-        find appload-unz -name "*.so" -exec cp -f {} /home/root/xovi/extensions.d/ \; && \
+        cp -f appload-unz/appload.so /home/root/xovi/extensions.d/ && \
+        mkdir -p /home/root/xovi/exthome/appload && \
+        if [ -d appload-unz/shims ]; then cp -rf appload-unz/shims /home/root/xovi/exthome/appload/; fi && \
         if [ -d appload-unz/exthome ]; then cp -rf appload-unz/exthome/. /home/root/xovi/exthome/; fi && \
         rm -rf appload-unz appload.zip' \
     || die "failed to install AppLoad"

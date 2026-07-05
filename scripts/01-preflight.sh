@@ -5,6 +5,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 source "$HERE/lib.sh"
 
 step "Checking the connection to your reMarkable ($RM_HOST)"
+info "If this is a fresh device, you'll be asked for the SSH password ONCE"
+info "(shown on the tablet under Settings → Help → Copyrights and licenses)."
+info "After that, the whole install reuses one connection — no more prompts."
 
 if ! rm_reachable; then
     warn "Couldn't reach the tablet over SSH at $RM_HOST."

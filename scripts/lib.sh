@@ -23,17 +23,35 @@ info()  { printf '%s    %s%s\n' "$C_DIM" "$*" "$C_0"; }
 # The device host. Override with RM_HOST=1.2.3.4 for Wi-Fi. Default = USB.
 RM_HOST="${RM_HOST:-10.11.99.1}"
 RM_USER="${RM_USER:-root}"
+
+# A fresh device has only PASSWORD auth (the code shown on the tablet). Without
+# connection sharing, every ssh/scp call would prompt for it again — a dozen
+# prompts per run. ControlMaster opens ONE connection and reuses it, so the
+# password is entered at most once and every later call rides the same socket.
+RM_CTL_DIR="${TMPDIR:-/tmp}/remagic-ssh-$$"
+mkdir -p "$RM_CTL_DIR" 2>/dev/null || true
+chmod 700 "$RM_CTL_DIR" 2>/dev/null || true
 # Options that make first-contact painless: accept the new host key, don't
 # pollute the user's known_hosts (dev-mode resets rotate the key anyway).
 SSH_OPTS=(-o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new
-          -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+          -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
+          -o ControlMaster=auto -o "ControlPath=$RM_CTL_DIR/%r@%h:%p"
+          -o ControlPersist=120)
+# Tear the shared connection down when the script exits.
+rm_ssh_cleanup() {
+    ssh "${SSH_OPTS[@]}" -O exit "$RM_USER@$RM_HOST" 2>/dev/null || true
+    rm -rf "$RM_CTL_DIR" 2>/dev/null || true
+}
+trap rm_ssh_cleanup EXIT
 
 rm_ssh()  { ssh "${SSH_OPTS[@]}" "$RM_USER@$RM_HOST" "$@"; }
 rm_scp()  { scp "${SSH_OPTS[@]}" -O "$@"; }
 rm_dest() { printf '%s@%s' "$RM_USER" "$RM_HOST"; }
 
-# Reachable at all?
-rm_reachable() { rm_ssh true 2>/dev/null; }
+# Open the shared connection (may prompt for the device password ONCE) and
+# confirm the device answers. We do NOT swallow stderr here — the password
+# prompt must be visible on this first contact.
+rm_reachable() { rm_ssh true; }
 
 # ---- device identity -----------------------------------------------------
 # Guard everything on a known reMarkable model so we never run the persistence
