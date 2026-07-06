@@ -336,8 +336,11 @@ func cmdInstall(d *device.Device, what, catalogURL string) {
 	if st, err := os.Stat(what); err == nil && st.IsDir() {
 		name := filepath.Base(strings.TrimRight(what, "/"))
 		step("pushing %s → AppLoad/%s", what, name)
-		if err := d.PushDir(what, device.ApploadDir+"/"+name); err != nil {
+		if err := d.PushDir(what, stagingDir); err != nil {
 			die("%v", err)
+		}
+		if out, err := d.Run(promoteCmd(name)); err != nil {
+			die("install failed: %v: %s", err, out)
 		}
 		ok("installed. On the tablet: open AppLoad and tap Reload.")
 		return
@@ -370,13 +373,28 @@ func cmdInstall(d *device.Device, what, catalogURL string) {
 	if err := d.Push(content, "/tmp/remagic-app.zip", "644"); err != nil {
 		die("%v", err)
 	}
-	target := device.ApploadDir + "/" + app.ID
-	cmd := fmt.Sprintf("mkdir -p %s && (unzip -oq /tmp/remagic-app.zip -d %s || busybox unzip -o /tmp/remagic-app.zip -d %s) && rm -f /tmp/remagic-app.zip",
-		target, target, target)
+	cmd := fmt.Sprintf("rm -rf %s && mkdir -p %s && (unzip -oq /tmp/remagic-app.zip -d %s || busybox unzip -o /tmp/remagic-app.zip -d %s) && rm -f /tmp/remagic-app.zip",
+		stagingDir, stagingDir, stagingDir, stagingDir)
 	if out, err := d.Run(cmd); err != nil {
 		die("unpack failed: %v: %s", err, out)
 	}
+	if out, err := d.Run(promoteCmd(app.ID)); err != nil {
+		die("install failed: %v: %s", err, out)
+	}
 	ok("%s %s installed. On the tablet: open AppLoad and tap Reload.", app.Name, app.Version)
+	ok("(a running copy keeps the old version until relaunched)")
+}
+
+// Extracting straight into the app folder fails with ETXTBSY when the app is
+// running. Stage on the same filesystem, then rename each entry over — a
+// rename replaces the directory entry without touching the running inode.
+// Only entries present in the bundle are replaced, so settings survive.
+const stagingDir = "/home/root/.remagic-stage"
+
+func promoteCmd(appID string) string {
+	target := device.ApploadDir + "/" + appID
+	return fmt.Sprintf(`mkdir -p %s && cd %s && find . -mindepth 1 -maxdepth 1 | while read -r p; do n="${p#./}"; rm -rf %s/"$n"; mv "$p" %s/; done && cd / && rm -rf %s`,
+		target, stagingDir, target, target, stagingDir)
 }
 
 func cmdConfig(d *device.Device, app string, lan bool) {
