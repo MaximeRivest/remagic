@@ -4,3 +4,5 @@
 *.swp
 .DS_Store
 cli/remagic
+cli/store/store-arm64
+cli/store/dist/

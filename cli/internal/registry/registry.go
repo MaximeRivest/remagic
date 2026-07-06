@@ -31,7 +31,11 @@ type Catalog struct {
 }
 
 func Fetch(url string) (*Catalog, error) {
-	client := &http.Client{Timeout: 20 * time.Second}
+	return FetchWith(&http.Client{Timeout: 20 * time.Second}, url)
+}
+
+// FetchWith lets on-device callers supply a client with their own CA roots.
+func FetchWith(client *http.Client, url string) (*Catalog, error) {
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("fetch catalog: %w", err)
@@ -59,10 +63,13 @@ func (c *Catalog) Find(id string) *App {
 // Download fetches the app zip to a temp file, verifying the checksum when
 // the catalog pins one. Returns the temp path; caller removes it.
 func (a *App) Download() (string, error) {
+	return a.DownloadWith(&http.Client{Timeout: 5 * time.Minute})
+}
+
+func (a *App) DownloadWith(client *http.Client) (string, error) {
 	if a.URL == "" {
 		return "", fmt.Errorf("%s has no published download yet", a.ID)
 	}
-	client := &http.Client{Timeout: 5 * time.Minute}
 	resp, err := client.Get(a.URL)
 	if err != nil {
 		return "", err
