@@ -3,3 +3,4 @@
 *.so
 *.swp
 .DS_Store
+cli/remagic

@@ -1,0 +1,11 @@
+{
+  "apps": [
+    {
+      "id": "riddle",
+      "name": "The Diary",
+      "description": "An enchanted diary: write to it with the pen and it writes back.",
+      "version": "0.2.0",
+      "url": ""
+    }
+  ]
+}
