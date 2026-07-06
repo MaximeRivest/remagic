@@ -28,6 +28,7 @@ usage: remagic <command> [args]
   find                    discover tablets on USB and this machine's networks
   doctor                  connect and health-check the tablet
   key                     install your SSH key (no more password prompts)
+  list                    apps installed on the tablet + catalog offerings
   install <app|folder>    install an app from the catalog, or push a local
                           app folder straight into AppLoad
   config <app>            configure an app from your browser — prints a QR
@@ -81,6 +82,8 @@ func main() {
 		cmdDoctor(mustConnect(host))
 	case "key":
 		cmdKey(mustConnect(host))
+	case "list":
+		cmdList(mustConnect(host), catalogURL)
 	case "install":
 		if len(args) != 1 {
 			die("usage: remagic install <app-id | local-folder>")
@@ -253,6 +256,56 @@ func cmdKey(d *device.Device) {
 		die("installing key: %v: %s", err, out)
 	}
 	ok("SSH key installed — no more password prompts.")
+}
+
+// cmdList shows what's in AppLoad (folders carrying an external.manifest.json;
+// support dirs like shims are skipped) and what the catalog could add.
+func cmdList(d *device.Device, catalogURL string) {
+	defer d.Close()
+	out, err := d.Run(`for d in ` + device.ApploadDir + `/*/; do
+  [ -f "$d/external.manifest.json" ] || continue
+  n=$(sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$d/external.manifest.json" | head -n 1)
+  echo "$(basename $d)|$n"
+done`)
+	if err != nil {
+		warn("listing installed apps: %v: %s", err, strings.TrimSpace(out))
+	}
+	installed := map[string]bool{}
+	step("installed on the tablet")
+	var lines []string
+	for _, l := range strings.Split(strings.TrimSpace(out), "\n") {
+		if l = strings.TrimSpace(l); l != "" {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) == 0 {
+		fmt.Println("  (none)")
+	}
+	for _, line := range lines {
+		id, name, _ := strings.Cut(line, "|")
+		installed[id] = true
+		if name != "" && name != id {
+			fmt.Printf("  %-24s %q\n", id, name)
+		} else {
+			fmt.Printf("  %s\n", id)
+		}
+	}
+
+	cat, err := registry.Fetch(catalogURL)
+	if err != nil {
+		warn("catalog unavailable: %v", err)
+		return
+	}
+	step("catalog")
+	for _, a := range cat.Apps {
+		status := "remagic install " + a.ID
+		if installed[a.ID] {
+			status = "installed ✓"
+		} else if a.URL == "" {
+			status = "not published yet"
+		}
+		fmt.Printf("  %-24s %-8s %s — %s\n", a.ID, a.Version, a.Description, status)
+	}
 }
 
 func cmdInstall(d *device.Device, what, catalogURL string) {

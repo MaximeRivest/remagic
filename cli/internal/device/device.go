@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"golang.org/x/crypto/ssh"
@@ -90,14 +91,30 @@ func (d *Device) RunIn(cmd string, r io.Reader) (string, error) {
 		return "", err
 	}
 	defer sess.Close()
+	// stdout and stderr are copied by separate goroutines; feeding them the
+	// same bare buffer is a data race that intermittently loses output.
 	var out bytes.Buffer
-	sess.Stdout = &out
-	sess.Stderr = &out
+	lw := &lockedWriter{w: &out}
+	sess.Stdout = lw
+	sess.Stderr = lw
 	if r != nil {
 		sess.Stdin = r
 	}
 	err = sess.Run(cmd)
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
 	return out.String(), err
+}
+
+type lockedWriter struct {
+	mu sync.Mutex
+	w  io.Writer
+}
+
+func (l *lockedWriter) Write(p []byte) (int, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	return l.w.Write(p)
 }
 
 // Push writes content to a remote path with the given chmod mode. Streams
