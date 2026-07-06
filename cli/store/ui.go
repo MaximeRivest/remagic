@@ -116,9 +116,17 @@ func (u *UI) Clear() {
 	u.fillRect(0, 0, screenW, screenH, 255)
 }
 
+// Header draws the title and the standard remagic back affordance: a ← in
+// the top-left that always means "leave" (BackAt reports taps on it).
 func (u *UI) Header(title string) {
-	u.text(marginX, 118, true, 64, 0, title)
+	u.text(marginX, 114, false, 72, 0, "←")
+	u.text(marginX+150, 118, true, 64, 0, title)
 	u.fillRect(0, headerH-4, screenW, 4, 0)
+}
+
+// BackAt reports whether a tap hits the back affordance (generous target).
+func (u *UI) BackAt(x, y int) bool {
+	return y < headerH && x < marginX+220
 }
 
 func (u *UI) Row(i int, name, version, desc, status string) {

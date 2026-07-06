@@ -49,6 +49,7 @@ type store struct {
 	mode     mode
 	selected int
 	notice   string
+	quit     bool
 	// async results
 	catalogCh  chan []item
 	progressCh chan string
@@ -109,8 +110,8 @@ func main() {
 				}
 			}
 		}
-		if err != nil {
-			return // window closed
+		if err != nil || s.quit {
+			return // window closed, or the ← was tapped
 		}
 
 		select {
@@ -162,6 +163,16 @@ func (s *store) refreshInstalled() {
 
 // tap routes a lifted finger/pen to whatever is on screen at that point.
 func (s *store) tap(x, y int) {
+	// The header's ← : back out of whatever is open; from the list, leave.
+	if s.ui.BackAt(x, y) && s.mode != modeBusy {
+		if s.mode == modeConfirm {
+			s.mode = modeList
+			s.render()
+			return
+		}
+		s.quit = true
+		return
+	}
 	switch s.mode {
 	case modeList, modeNotice:
 		s.notice = ""

@@ -1,0 +1,8 @@
+{
+  "id": "store",
+  "name": "Store",
+  "version": "0.1.1",
+  "description": "Browse and install apps right on the tablet — no computer needed.",
+  "application": "store",
+  "qtfb": true
+}

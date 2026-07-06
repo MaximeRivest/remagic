@@ -12,9 +12,9 @@
       "id": "store",
       "name": "Store",
       "description": "Browse and install apps right on the tablet — no computer needed.",
-      "version": "0.1.0",
-      "url": "https://github.com/MaximeRivest/remagic/releases/download/v0.1.0/store-0.1.0.zip",
-      "sha256": "f54876f8290907e3e9dfc1b6c05ff492594de8c22d657fe7ac4f2539a47e8d55"
+      "version": "0.1.1",
+      "url": "https://github.com/MaximeRivest/remagic/releases/download/v0.1.1/store-0.1.1.zip",
+      "sha256": "0e0761dab7b70ae6402bb551347d85351457f1cc2a9a5df369a74d56553233b7"
     }
   ]
 }
