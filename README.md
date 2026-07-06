@@ -119,6 +119,24 @@ can disturb.
 
 ---
 
+## Troubleshooting
+
+**`ssh`/`scp` says `kex_exchange_identification: read: Connection reset by peer`.**
+The SSH host-key mount on the tablet got knocked over (upstream tripletap's
+installer does this on the Paper Pro; the installer now repairs it
+automatically). One reboot of the tablet fixes it. Not to be confused with the
+normal ~20&nbsp;s USB-network dropout whenever the reMarkable UI restarts —
+that one heals itself.
+
+**The tablet stops answering after a minute idle.** It's asleep — e-ink devices
+sleep aggressively. Tap the power button and reconnect.
+
+**Wi-Fi ssh refused.** The *SSH over Wi-Fi* toggle (Settings → General →
+Software → Advanced) resets with developer-mode/factory resets; USB
+(`10.11.99.1`) always works when the cable is in.
+
+---
+
 ## The remagic family
 
 Once your tablet is open, here's what we build on top of it. Each is its own

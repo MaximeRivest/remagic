@@ -33,8 +33,9 @@ mkdir -p "$RM_CTL_DIR" 2>/dev/null || true
 chmod 700 "$RM_CTL_DIR" 2>/dev/null || true
 # Options that make first-contact painless: accept the new host key, don't
 # pollute the user's known_hosts (dev-mode resets rotate the key anyway).
-SSH_OPTS=(-o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new
-          -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR
+SSH_BASE_OPTS=(-o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new
+               -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
+SSH_OPTS=("${SSH_BASE_OPTS[@]}"
           -o ControlMaster=auto -o "ControlPath=$RM_CTL_DIR/%r@%h:%p"
           -o ControlPersist=120)
 # Tear the shared connection down when the script exits.
@@ -47,6 +48,12 @@ trap rm_ssh_cleanup EXIT
 rm_ssh()  { ssh "${SSH_OPTS[@]}" "$RM_USER@$RM_HOST" "$@"; }
 rm_scp()  { scp "${SSH_OPTS[@]}" -O "$@"; }
 rm_dest() { printf '%s@%s' "$RM_USER" "$RM_HOST"; }
+
+# A genuinely NEW connection, bypassing the shared master socket. The master
+# hides an entire class of failures (a broken sshd still serves the old
+# session) — use this to prove the next person to type `ssh` will get in.
+# BatchMode: key auth only, never hang on a password prompt.
+rm_ssh_fresh() { ssh "${SSH_BASE_OPTS[@]}" -S none -o BatchMode=yes "$RM_USER@$RM_HOST" "$@"; }
 
 # Open the shared connection (may prompt for the device password ONCE) and
 # confirm the device answers. We do NOT swallow stderr here — the password
@@ -91,6 +98,45 @@ umount "$BIND"; rmdir "$BIND"
 mount -o remount,ro / 2>/dev/null || true
 rm -f /tmp/.persist_payload
 echo "persisted: $REMOTE_DEST"
+REMOTE
+}
+
+# ---- SSH keystore repair (the tripletap wedge) ----------------------------
+# Upstream xovi-tripletap's enable.sh persists its unit on the Paper Pro by
+# running `mount -o remount,rw /` + `umount -R /etc`. The -R also rips out the
+# /etc/dropbear bind mount that holds the SSH host key (and leaves / rw and
+# the /etc overlay down). From then on every NEW connection is accepted, gets
+# the "unlocked" gate line, then dropbear dies loading the host key → the
+# client sees a reset at key exchange.
+#
+# Usually systemd self-heals on the next connection (dropbear@ Wants=
+# dropbearkey Wants= etc-dropbear.mount), BUT on the boot where the host key
+# was first generated — i.e. a factory-fresh device, exactly our audience —
+# dropbearkey is still `active (exited)` (RemainAfterExit) so the Wants chain
+# never fires, and SSH stays dead until reboot. Our master connection
+# survives, so we repair in-band right after tripletap runs.
+repair_ssh_keystore() {
+    rm_ssh 'bash -s' <<'REMOTE'
+set -e
+grep -qE "reMarkable (Ferrari|Chiappa|Tatsu)" /proc/device-tree/model || exit 0
+# 1. /etc overlay back up, if enable.sh took it down
+if ! mountpoint -q /etc; then
+    mount -t overlay overlay \
+        -o lowerdir=/etc,upperdir=/var/volatile/etc,workdir=/var/volatile/.etc-work,uuid=on /etc \
+      || mount -t overlay overlay \
+        -o lowerdir=/etc,upperdir=/var/volatile/etc,workdir=/var/volatile/.etc-work /etc
+fi
+# 2. host-key bind mount back on top (restart is a no-op/failure when systemd's
+#    view is stale, hence the manual fallback)
+if [ ! -e /etc/dropbear/dropbear_ed25519_host_key ]; then
+    systemctl restart etc-dropbear.mount 2>/dev/null || true
+fi
+if [ ! -e /etc/dropbear/dropbear_ed25519_host_key ] \
+   && [ -e /home/root/.dropbear/dropbear_ed25519_host_key ]; then
+    mount --bind /home/root/.dropbear /etc/dropbear
+fi
+# 3. enable.sh leaves / read-write; stock is read-only
+mount -o remount,ro / 2>/dev/null || true
 REMOTE
 }
 

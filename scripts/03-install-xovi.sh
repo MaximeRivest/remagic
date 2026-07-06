@@ -84,6 +84,22 @@ else
     info "ssh $(rm_dest) '/home/root/xovi/start'"
 fi
 
+# --- 4b. undo the SSH damage tripletap just did (Paper Pro) -------------------
+# enable.sh's `umount -R /etc` takes the SSH host-key bind mount down with it;
+# on a factory-fresh device that kills every NEW connection until reboot (our
+# master survives, which is why the install keeps going — and why we must
+# verify with a genuinely fresh connection). See repair_ssh_keystore in lib.sh.
+if rm_is_paper_pro; then
+    step "Checking the SSH server survived tripletap"
+    repair_ssh_keystore || true
+    if rm_ssh_fresh true 2>/dev/null; then
+        ok "SSH healthy — verified with a fresh connection."
+    else
+        warn "New SSH connections aren't completing. One reboot of the tablet"
+        warn "fixes this (power off/on). Everything else installed fine."
+    fi
+fi
+
 # --- 5. start it now ---------------------------------------------------------
 step "Starting xovi now (no reboot needed)"
 rm_ssh 'systemd-run --unit=xovi-firststart --collect --service-type=oneshot /home/root/xovi/start 2>/dev/null' \
