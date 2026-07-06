@@ -7,6 +7,7 @@ package webconfig
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net"
@@ -20,33 +21,60 @@ import (
 
 // A Field of the settings form. Kind: "text", "secret", or "select".
 type Field struct {
-	Key         string
-	Label       string
-	Kind        string
-	Placeholder string
-	Help        string
-	Options     []string
+	Key         string   `json:"key"`
+	Label       string   `json:"label"`
+	Kind        string   `json:"kind"`
+	Placeholder string   `json:"placeholder,omitempty"`
+	Help        string   `json:"help,omitempty"`
+	Options     []string `json:"options,omitempty"`
 }
 
-// Schema describes one configurable app.
+// Schema describes one configurable app. Apps ship it as
+// settings.schema.json next to external.manifest.json; the same file feeds
+// this form, the on-device Settings app, and the store's post-install setup.
 type Schema struct {
-	App        string
-	RemotePath string
-	Fields     []Field
+	App        string   `json:"-"`
+	Title      string   `json:"title,omitempty"`
+	Env        string   `json:"env,omitempty"` // values file, relative to the app dir
+	RemotePath string   `json:"-"`
+	Fields     []Field  `json:"fields"`
 	// Presets fill several fields at once from one dropdown.
-	Presets []Preset
+	Presets []Preset `json:"presets,omitempty"`
 }
 
 type Preset struct {
-	Name   string
-	Values map[string]string
+	Name   string            `json:"name"`
+	Values map[string]string `json:"values"`
 }
 
-// Riddle is the only schema for now; new apps add one entry here (and later,
-// a schema block in the catalog).
+// ParseSchema reads a settings.schema.json for the given app id and resolves
+// the on-device path its values are written to.
+func ParseSchema(appID, appDir string, raw []byte) (Schema, error) {
+	var s Schema
+	if err := json.Unmarshal(raw, &s); err != nil {
+		return s, fmt.Errorf("%s/settings.schema.json: %w", appID, err)
+	}
+	if len(s.Fields) == 0 {
+		return s, fmt.Errorf("%s/settings.schema.json declares no fields", appID)
+	}
+	s.App = appID
+	if s.Env == "" {
+		s.Env = "settings.env"
+	}
+	if s.Title == "" {
+		s.Title = appID + " — settings"
+	}
+	s.RemotePath = appDir + "/" + s.Env
+	return s, nil
+}
+
+// Riddle is the built-in fallback schema, used when the installed riddle
+// predates settings.schema.json files.
 func Riddle() Schema {
 	return Schema{
 		App:        "riddle",
+		Title:      "The Diary — oracle settings",
+		Env:        "oracle.env",
 		RemotePath: device.ApploadDir + "/riddle/oracle.env",
 		Fields: []Field{
 			{Key: "RIDDLE_OPENAI_KEY", Label: "API key", Kind: "secret",
@@ -247,7 +275,7 @@ var formTmpl = template.Must(template.New("form").Parse(`<!doctype html>
   .err{background:#fee;border:1px solid #c00;padding:.6rem;border-radius:6px;margin-top:1rem}
   .row{display:flex;gap:.5rem;align-items:center}
 </style>
-<h1>The Diary — oracle settings</h1>
+<h1>{{.Schema.Title}}</h1>
 {{if .Err}}<div class="err">{{.Err}}</div>{{end}}
 <label>Provider preset</label>
 <select id="preset" onchange="applyPreset()">

@@ -5,7 +5,8 @@
       "name": "The Diary",
       "description": "An enchanted diary: write to it with the pen and it writes back.",
       "version": "0.2.0",
-      "url": ""
+      "url": "https://github.com/MaximeRivest/riddle/releases/download/v0.2.0/riddle-0.2.0.zip",
+      "sha256": "492e30e0b10b90f3e7c5b10b7c6d2207767c5e71fcbd005b0ac3a87c5454d7f6"
     }
   ]
 }

@@ -35,18 +35,25 @@ usage: remagic <command> [args]
                           code so you can use your phone's keyboard
   wifi on|off|status      SSH over Wi-Fi, so the cable is only ever needed once
   repair-ssh              fix the "connection reset" SSH wedge in-band
+  publish [folder]        zip an app folder, create a GitHub release (via gh),
+                          and print/update its catalog entry
   version                 print the version
 
 options (before the command):
   -host <addr>            tablet address (default: found automatically)
   -catalog <url>          app catalog URL
   -local                  config: serve on 127.0.0.1 only (no QR/phone)
+  -version <v>            publish: version (default: manifest "version")
+  -catalog-dir <path>     publish: local remagic checkout whose catalog.json
+                          gets the new entry written in place
 `
 
 func main() {
 	host := ""
 	catalogURL := registry.DefaultCatalogURL
 	localOnly := false
+	pubVersion := ""
+	catalogDir := ""
 
 	args := os.Args[1:]
 	for len(args) > 0 && strings.HasPrefix(args[0], "-") {
@@ -63,6 +70,16 @@ func main() {
 			catalogURL, args = args[1], args[2:]
 		case "-local", "--local":
 			localOnly, args = true, args[1:]
+		case "-version", "--version":
+			if len(args) < 2 {
+				die("-version needs a value")
+			}
+			pubVersion, args = args[1], args[2:]
+		case "-catalog-dir", "--catalog-dir":
+			if len(args) < 2 {
+				die("-catalog-dir needs a value")
+			}
+			catalogDir, args = args[1], args[2:]
 		default:
 			die("unknown option %s", args[0])
 		}
@@ -90,10 +107,10 @@ func main() {
 		}
 		cmdInstall(mustConnect(host), args[0], catalogURL)
 	case "config":
-		if len(args) != 1 || args[0] != "riddle" {
-			die("usage: remagic config riddle   (more apps as the catalog grows)")
+		if len(args) != 1 {
+			die("usage: remagic config <app>")
 		}
-		cmdConfig(mustConnect(host), !localOnly)
+		cmdConfig(mustConnect(host), args[0], !localOnly)
 	case "wifi":
 		if len(args) != 1 {
 			die("usage: remagic wifi on|off|status")
@@ -101,6 +118,12 @@ func main() {
 		cmdWifi(mustConnect(host), args[0])
 	case "repair-ssh":
 		cmdRepairSSH(mustConnect(host))
+	case "publish":
+		dir := "."
+		if len(args) == 1 {
+			dir = args[0]
+		}
+		cmdPublish(dir, pubVersion, catalogDir)
 	default:
 		die("unknown command %q — run remagic with no arguments for help", cmd)
 	}
@@ -356,9 +379,25 @@ func cmdInstall(d *device.Device, what, catalogURL string) {
 	ok("%s %s installed. On the tablet: open AppLoad and tap Reload.", app.Name, app.Version)
 }
 
-func cmdConfig(d *device.Device, lan bool) {
+func cmdConfig(d *device.Device, app string, lan bool) {
 	defer d.Close()
-	err := webconfig.Serve(d, webconfig.Riddle(), lan, func(url string) {
+	appDir := device.ApploadDir + "/" + app
+	if _, err := d.Run("test -d " + appDir); err != nil {
+		die("no app %q on the tablet (remagic list shows what's installed)", app)
+	}
+	var schema webconfig.Schema
+	raw, err := d.Run("cat " + appDir + "/settings.schema.json 2>/dev/null")
+	switch {
+	case err == nil && strings.TrimSpace(raw) != "":
+		if schema, err = webconfig.ParseSchema(app, appDir, []byte(raw)); err != nil {
+			die("%v", err)
+		}
+	case app == "riddle":
+		schema = webconfig.Riddle() // installed riddle predates schema files
+	default:
+		die("%s ships no settings.schema.json — nothing to configure", app)
+	}
+	err = webconfig.Serve(d, schema, lan, func(url string) {
 		step("settings form is live (one save, then it closes):")
 		fmt.Printf("\n  %s\n\n", url)
 		if lan {
