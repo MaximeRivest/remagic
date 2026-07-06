@@ -333,17 +333,26 @@ done`)
 
 func cmdInstall(d *device.Device, what, catalogURL string) {
 	defer d.Close()
+	// A folder is only an installable app if it carries a manifest — otherwise
+	// bare names like "store" would shadow catalog ids with stray local dirs.
 	if st, err := os.Stat(what); err == nil && st.IsDir() {
-		name := filepath.Base(strings.TrimRight(what, "/"))
-		step("pushing %s → AppLoad/%s", what, name)
-		if err := d.PushDir(what, stagingDir); err != nil {
-			die("%v", err)
+		_, merr := os.Stat(filepath.Join(what, "external.manifest.json"))
+		switch {
+		case merr == nil:
+			name := filepath.Base(strings.TrimRight(what, "/"))
+			step("pushing %s → AppLoad/%s", what, name)
+			if err := d.PushDir(what, stagingDir); err != nil {
+				die("%v", err)
+			}
+			if out, err := d.Run(promoteCmd(name)); err != nil {
+				die("install failed: %v: %s", err, out)
+			}
+			ok("installed. On the tablet: open AppLoad and tap Reload.")
+			return
+		case strings.ContainsAny(what, "/\\"):
+			die("%s is a folder but has no external.manifest.json", what)
 		}
-		if out, err := d.Run(promoteCmd(name)); err != nil {
-			die("install failed: %v: %s", err, out)
-		}
-		ok("installed. On the tablet: open AppLoad and tap Reload.")
-		return
+		// bare name matching a manifest-less local dir: treat as a catalog id
 	}
 
 	step("looking up %q in the catalog", what)
