@@ -59,6 +59,18 @@ post-install step — renders it automatically:
 - The env file is excluded from published zips automatically: keys never
   leave the tablet.
 
+## UI conventions
+
+**Every remagic app has an obvious way out.** AppLoad's close gesture (drag
+from the top-center) is invisible; don't make people find it.
+
+- Chrome-style apps (the store, tools): a **← in the top-left** of the root
+  screen. It always means "leave"; one level deep it means "back". Hit
+  target ≥ 200 px.
+- Immersive apps (riddle): a themed affordance in the **top-right corner** —
+  riddle draws a folded page corner; tapping it closes the book. Same idea,
+  in the app's own language.
+
 ## Publishing
 
 From the app folder (or a staged `dist/` copy):
