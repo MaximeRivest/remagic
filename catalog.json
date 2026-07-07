@@ -3,10 +3,10 @@
     {
       "id": "riddle",
       "name": "The Diary",
-      "description": "An enchanted diary: write to it with the pen and it writes back.",
-      "version": "0.2.0",
-      "url": "https://github.com/MaximeRivest/riddle/releases/download/v0.2.0/riddle-0.2.0.zip",
-      "sha256": "492e30e0b10b90f3e7c5b10b7c6d2207767c5e71fcbd005b0ac3a87c5454d7f6"
+      "description": "An enchanted diary: write to it with the pen — it writes back, and it remembers.",
+      "version": "0.3.0",
+      "url": "https://github.com/MaximeRivest/riddle/releases/download/v0.3.0/riddle-0.3.0.zip",
+      "sha256": "772f45ed26e8117672dde49e8008bb7ef373bb6bfdbd8605dfc9579baa09f21b"
     },
     {
       "id": "store",
