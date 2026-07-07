@@ -12,6 +12,7 @@ go build -o remagic .          # or grab a release binary
 ./remagic install <app|dir>    # catalog app or local folder → AppLoad
 ./remagic config riddle        # settings form in your browser + QR for phone
 ./remagic repair-ssh           # fixes the "connection reset" SSH wedge
+./remagic publish <dir>        # zip + GitHub release + catalog entry
 ```
 
 Highlights:
@@ -27,5 +28,5 @@ Highlights:
 - Pure Go SSH: no ssh binary, no ControlMaster, same behavior on
   macOS / Linux / Windows.
 
-`catalog.json` at the repo root is the app registry; the same file will feed
-the on-device store app.
+`catalog.json` at the repo root is the app registry; the same file feeds the
+on-device Store app (`store/` in this directory).

@@ -53,27 +53,57 @@ When it finishes, the **AppLoad** launcher appears on your tablet.
 
 ---
 
+## The remagic CLI
+
+Beyond the installer there's a companion CLI — one static Go binary that makes
+the tablet feel like a normal, friendly device, over USB **or Wi-Fi**:
+
+```
+cd cli && go build -o remagic .   # or grab a release binary
+./remagic find                    # discovers tablets (USB + LAN scan)
+./remagic doctor                  # health check: stack, SSH, battery, apps
+./remagic key                     # passwordless SSH from then on
+./remagic wifi on                 # after this, the cable is optional
+./remagic install <app|./dir>     # catalog app or local folder → AppLoad
+./remagic config <app>            # settings form in your browser + QR for phone
+./remagic repair-ssh              # fixes the "connection reset" SSH wedge
+```
+
+Details: **[cli/README.md](cli/README.md)**.
+
+---
+
 ## Adding apps
 
-AppLoad apps live in `/home/root/xovi/exthome/appload/<app>/`. An "external" app
-(wrapping any aarch64 binary) needs just two files:
+Three ways, from easiest to most manual:
 
-```
-myapp/
-├── external.manifest.json
-└── icon.png
-```
+1. **The Store, on the tablet.** Install it once (`remagic install store`),
+   then browse and install apps right on the device — no computer needed.
+2. **From your computer:** `remagic install <app>` pulls a checksum-verified
+   app from the [catalog](catalog.json), or `remagic install ./myapp` pushes a
+   local folder straight into AppLoad.
+3. **By hand:** AppLoad apps live in `/home/root/xovi/exthome/appload/<app>/`.
+   An "external" app (wrapping any aarch64 binary) needs just two files:
 
-```json
-{
-  "name": "My App",
-  "application": "myapp",
-  "qtfb": true
-}
-```
+   ```
+   myapp/
+   ├── external.manifest.json
+   └── icon.png
+   ```
 
-Copy the folder over and tap **Reload** in AppLoad. Popular ready-made apps:
-KOReader, and anything from the community.
+   ```json
+   {
+     "name": "My App",
+     "application": "myapp",
+     "qtfb": true
+   }
+   ```
+
+   Copy the folder over and tap **Reload** in AppLoad.
+
+Building (or publishing) your own? The full app format — manifest fields,
+settings schemas, UI conventions, and `remagic publish` — is specified in
+**[docs/APP-SPEC.md](docs/APP-SPEC.md)**.
 
 ---
 
@@ -112,7 +142,10 @@ opt-in and separate.
 | `scripts/03-install-xovi.sh` | Downloads and installs xovi + AppLoad + tripletap. |
 | `scripts/sources.env` | Pinned upstream release URLs (one place to update versions). |
 | `scripts/99-advanced-autostart.sh` | Optional unattended boot autostart. |
+| `cli/` | The `remagic` companion CLI (Go), including the on-device Store app (`cli/store/`). |
+| `catalog.json` | The app catalog: pinned versions, URLs, and sha256 checksums. Feeds `remagic install` and the Store. |
 | `docs/DEVELOPER-MODE.md` | The developer-mode walkthrough. |
+| `docs/APP-SPEC.md` | The remagic app format: manifest, settings schemas, publishing. |
 
 Re-run `install.sh` after a reMarkable OS update to refresh the pieces an update
 can disturb.
@@ -133,27 +166,30 @@ sleep aggressively. Tap the power button and reconnect.
 
 **Wi-Fi ssh refused.** The *SSH over Wi-Fi* toggle (Settings → General →
 Software → Advanced) resets with developer-mode/factory resets; USB
-(`10.11.99.1`) always works when the cable is in.
+(`10.11.99.1`) always works when the cable is in. Plug in once and run
+`remagic wifi on` to flip it back.
 
 ---
 
 ## The remagic family
 
-Once your tablet is open, here's what we build on top of it. Each is its own
-repo; drop any of them into `/home/root/xovi/exthome/appload/<app>/` and tap
-**Reload** in AppLoad.
+Once your tablet is open, here's what we build on top of it — install any of
+them from the Store or with `remagic install <app>`.
 
 - **[Riddle](https://github.com/maximerivest/riddle)** — an enchanted diary. Write
   with the pen; after a pause the page drinks your ink and an answer writes
   itself back in a flowing hand. A magical blackboard, powered by an LLM.
-- **[Paperterm](https://github.com/maximerivest/paperterm)** — a real terminal
-  emulator with pixel-wise partial e-ink updates. A shell on your tablet.
-- **[Quill](https://github.com/maximerivest/quill)** — the low-level takeover
-  display host the apps stand on: it drives the e-ink panel directly through the
-  vendor waveform engine for instant-ink latency. More a library than an app.
+- **Store** (in this repo, `cli/store/`) — browse and install apps right on
+  the tablet, no computer needed.
+- **Paperterm** *(repo coming soon)* — a real terminal emulator with
+  pixel-wise partial e-ink updates. A shell on your tablet.
+- **Quill** *(repo coming soon)* — the low-level takeover display host the
+  apps stand on: it drives the e-ink panel directly through the vendor
+  waveform engine for instant-ink latency. More a library than an app.
 
 Building your own? These are worked examples of an AppLoad app, from a full
-takeover renderer (Quill/Riddle) to a windowed qtfb app (Paperterm).
+takeover renderer (Quill/Riddle) to a windowed qtfb app (the Store, Paperterm).
+Start with **[docs/APP-SPEC.md](docs/APP-SPEC.md)**.
 
 ---
 
