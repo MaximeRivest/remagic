@@ -28,16 +28,6 @@ can follow along and know you're in the right place.
 
 ---
 
-<!--
-  PHOTO GUIDE FOR MAXIME — how to make this shine:
-  • Take each photo straight-on, good light, no glare on the e-ink.
-  • Frame the whole screen; a little bezel is fine (helps orient people).
-  • Name files EXACTLY as referenced below and drop them in docs/img/.
-  • If a screen's wording differs on your OS version, tweak the "You'll see"
-    line to match your photo — the photo is the source of truth for the reader.
-  • A short 10–20s screen-record split into stills also works.
--->
-
 ## Step 1 — Open Settings
 
 Tap your account icon (top-left of the home screen), then the gear / **Settings**.
@@ -51,7 +41,7 @@ Tap your account icon (top-left of the home screen), then the gear / **Settings*
 
 ## Step 2 — General → Software
 
-In Settings, open **General**, then find **Software** (this is where the OS
+In Settings, open **General**, then tap **Software** (this is where the OS
 version and advanced options live).
 
 ![Settings → General → Software](img/02-general-software.jpg)
@@ -67,7 +57,7 @@ version and advanced options live).
 
 ## Step 3 — Advanced → Developer Mode
 
-Open **Advanced**, then tap **Developer mode**.
+On the Software screen, expand **Advanced**, then tap **Developer mode**.
 
 ![The Advanced menu with Developer mode](img/03-advanced-developer-mode.jpg)
 
@@ -98,25 +88,45 @@ Tap **Enable**. reMarkable now shows the important warning.
 To confirm, **press the physical power button twice**, as the screen instructs.
 The tablet resets and reboots into developer mode.
 
-![Confirming with the power button](img/05-confirm-power-button.jpg)
+![The tablet restarting after developer mode is enabled](img/05-confirm-power-button.jpg)
 
 > _You'll see:_ the device restart and begin **first-time setup** again — just
 > like a new tablet. Go through setup, connect to Wi-Fi, and (optionally) sign
 > back into your reMarkable account so your notebooks download again.
 
+### What first-time setup looks like
+
+After the reset, follow the normal onboarding screens: choose a language,
+connect to Wi-Fi, and pair your account if you want your notebooks to sync
+back from the cloud.
+
+![Choosing a language after the reset](img/08-setup-language.jpg)
+
+![Connecting the tablet to Wi-Fi after the reset](img/09-setup-wifi.jpg)
+
+If you pair your account, the tablet asks for a one-time code from
+`my.remarkable.com`:
+
+![The my.remarkable.com verification code screen](img/10-pair-code.jpg)
+
+When setup is done, you're back at the normal reMarkable home screen — now in
+developer mode.
+
+![The reMarkable home screen after setup](img/11-home-ready.jpg)
+
 ---
 
 ## Step 6 — Find your SSH password
 
-Once you're back on the home screen, go to
-**Settings → General → Help → Copyrights and licenses** (or the About screen).
-Scroll to the **GPLv3 Compliance / SSH** section.
+Once you're back on the home screen, go to **Settings → Help → Copyrights and
+licenses**. Scroll to the **GPLv3 Compliance / SSH** section.
 
-![Where to find the SSH password and address](img/06-ssh-password.jpg)
+![Opening Help → Copyrights and licenses to find SSH information](img/06-ssh-password.jpg)
 
 > _You'll see:_ a one-time SSH **password** and the address **`root@10.11.99.1`**.
 > You'll need this the first time you connect. Keep this screen handy for the
-> next step.
+> next step. (The photo shows the Help screen; the SSH text is inside
+> **Copyrights and licenses**.)
 
 ---
 
@@ -141,14 +151,14 @@ Enter the password from Step 6 when asked. You're in. 🎉
 ## You're done — now the fun part
 
 Developer mode is on. Head back to the **[README](../README.md)** and run the
-one-command installer:
+one-line installer:
 
 ```sh
-./install.sh
+curl -fsSL https://raw.githubusercontent.com/maximerivest/remagic/main/get.sh | sh
 ```
 
-It sets up passwordless SSH, installs the AppLoad launcher, and gets you ready
-to add apps — no more terminal wrangling.
+It downloads `remagic`, sets up passwordless SSH, installs xovi + AppLoad, and
+adds the Store app — no more terminal wrangling.
 
 ---
 
