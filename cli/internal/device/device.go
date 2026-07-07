@@ -30,10 +30,9 @@ type Device struct {
 	client *ssh.Client
 }
 
-// Connect dials root@addr trying, in order: the ssh-agent, the usual key
-// files, then an interactive password prompt (the code on the tablet under
-// Settings → Help → Copyrights and licenses).
-func Connect(addr string) (*Device, error) {
+// nonInteractiveAuths collects the auth methods that never prompt: the
+// ssh-agent plus the usual key files.
+func nonInteractiveAuths() []ssh.AuthMethod {
 	var auths []ssh.AuthMethod
 	if sock := os.Getenv("SSH_AUTH_SOCK"); sock != "" {
 		if conn, err := net.Dial("unix", sock); err == nil {
@@ -50,6 +49,31 @@ func Connect(addr string) (*Device, error) {
 			auths = append(auths, ssh.PublicKeys(signer))
 		}
 	}
+	return auths
+}
+
+// ConnectKeyOnly dials with only non-interactive auth (agent + key files) on
+// a genuinely fresh connection. Use it to prove the NEXT person to connect
+// will get in — e.g. after an installer step that can wedge the SSH server.
+func ConnectKeyOnly(addr string) (*Device, error) {
+	cfg := &ssh.ClientConfig{
+		User:            "root",
+		Auth:            nonInteractiveAuths(),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         8 * time.Second,
+	}
+	client, err := ssh.Dial("tcp", net.JoinHostPort(addr, "22"), cfg)
+	if err != nil {
+		return nil, fmt.Errorf("connect root@%s: %w", addr, err)
+	}
+	return &Device{Addr: addr, client: client}, nil
+}
+
+// Connect dials root@addr trying, in order: the ssh-agent, the usual key
+// files, then an interactive password prompt (the code on the tablet under
+// Settings → Help → Copyrights and licenses).
+func Connect(addr string) (*Device, error) {
+	auths := nonInteractiveAuths()
 	auths = append(auths, ssh.RetryableAuthMethod(ssh.PasswordCallback(func() (string, error) {
 		fmt.Fprintf(os.Stderr, "password for root@%s (tablet: Settings → Help → Copyrights and licenses): ", addr)
 		b, err := term.ReadPassword(int(os.Stdin.Fd()))

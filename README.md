@@ -26,21 +26,38 @@ cloud first**. Full walkthrough:
 
 ### 2. Run the installer
 
-Plug the tablet in over USB and run:
+Plug the tablet in over USB and run one line — no git, no compiler, nothing
+else to install:
+
+**Linux / macOS**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/maximerivest/remagic/main/get.sh | sh
+```
+
+**Windows** (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/maximerivest/remagic/main/get.ps1 | iex
+```
+
+This downloads the `remagic` CLI for your machine and runs `remagic setup`.
+The tablet is found automatically — USB or Wi-Fi, no address needed (use
+`remagic -host <ip> setup` to pick one explicitly).
+
+<details>
+<summary>Prefer the shell-script installer? (Linux/macOS, needs git + ssh)</summary>
 
 ```sh
 git clone https://github.com/maximerivest/remagic
 cd remagic
-./install.sh
+./install.sh                      # USB
+RM_HOST=<tablet-ip> ./install.sh  # Wi-Fi
 ```
 
-On Wi-Fi instead of USB:
+</details>
 
-```sh
-RM_HOST=<tablet-ip> ./install.sh
-```
-
-The installer:
+Setup:
 
 1. **Checks the connection** and confirms it's a Paper Pro in developer mode.
 2. **Installs your SSH key** — no more typing the device password.
@@ -48,8 +65,14 @@ The installer:
 4. **Sets up persistence** via [xovi-tripletap](https://github.com/rmitchellscott/xovi-tripletap):
    **triple-press the power button** to toggle xovi on or off. Survives reboots,
    needs no computer, and can't bootloop you.
+5. **Installs the Store app**, so from then on you can browse and install apps
+   right on the tablet — no computer needed.
 
-When it finishes, the **AppLoad** launcher appears on your tablet.
+When it finishes, the **AppLoad** launcher appears on your tablet. You type
+the device password at most once: setup installs an SSH key (and generates
+one for you if you've never made one).
+
+After a reMarkable OS update, just run `remagic setup` again.
 
 ---
 
@@ -59,7 +82,7 @@ Beyond the installer there's a companion CLI — one static Go binary that makes
 the tablet feel like a normal, friendly device, over USB **or Wi-Fi**:
 
 ```
-cd cli && go build -o remagic .   # or grab a release binary
+remagic setup                     # the whole install, one command
 ./remagic find                    # discovers tablets (USB + LAN scan)
 ./remagic doctor                  # health check: stack, SSH, battery, apps
 ./remagic key                     # passwordless SSH from then on
@@ -142,13 +165,14 @@ opt-in and separate.
 | `scripts/03-install-xovi.sh` | Downloads and installs xovi + AppLoad + tripletap. |
 | `scripts/sources.env` | Pinned upstream release URLs (one place to update versions). |
 | `scripts/99-advanced-autostart.sh` | Optional unattended boot autostart. |
-| `cli/` | The `remagic` companion CLI (Go), including the on-device Store app (`cli/store/`). |
+| `get.sh` / `get.ps1` | One-line bootstrap: download the prebuilt CLI, run `remagic setup`. |
+| `cli/` | The `remagic` companion CLI (Go), including `remagic setup` (the pure-Go installer) and the on-device Store app (`cli/store/`). |
 | `catalog.json` | The app catalog: pinned versions, URLs, and sha256 checksums. Feeds `remagic install` and the Store. |
 | `docs/DEVELOPER-MODE.md` | The developer-mode walkthrough. |
 | `docs/APP-SPEC.md` | The remagic app format: manifest, settings schemas, publishing. |
 
-Re-run `install.sh` after a reMarkable OS update to refresh the pieces an update
-can disturb.
+Re-run `remagic setup` (or `install.sh`) after a reMarkable OS update to
+refresh the pieces an update can disturb.
 
 ---
 

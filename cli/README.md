@@ -1,10 +1,13 @@
 # remagic CLI
 
 One static Go binary that makes a developer-mode reMarkable feel like a
-normal, friendly device — over USB **or Wi-Fi**.
+normal, friendly device — over USB **or Wi-Fi**. Prebuilt binaries for
+Linux/macOS/Windows ship on [releases](https://github.com/maximerivest/remagic/releases)
+(the `get.sh`/`get.ps1` one-liners in the top-level README fetch them).
 
 ```
 go build -o remagic .          # or grab a release binary
+./remagic setup                # full install: key, xovi, AppLoad, tripletap, Store
 ./remagic find                 # discovers tablets (USB + LAN scan)
 ./remagic doctor               # health check: stack, SSH, battery, apps
 ./remagic key                  # passwordless SSH from then on

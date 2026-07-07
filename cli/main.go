@@ -6,6 +6,10 @@
 package main
 
 import (
+	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/pem"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,18 +17,22 @@ import (
 	"time"
 
 	"github.com/mdp/qrterminal/v3"
+	"golang.org/x/crypto/ssh"
 
 	"github.com/maximerivest/remagic/cli/internal/device"
 	"github.com/maximerivest/remagic/cli/internal/registry"
 	"github.com/maximerivest/remagic/cli/internal/webconfig"
 )
 
-const version = "0.1.0"
+// Overridden at release time via -ldflags "-X main.version=v0.2.0".
+var version = "dev"
 
 const usage = `remagic %s — the reMarkable companion
 
 usage: remagic <command> [args]
 
+  setup                   one-command install: SSH key, xovi, AppLoad,
+                          power-button persistence, and the Store app
   find                    discover tablets on USB and this machine's networks
   doctor                  connect and health-check the tablet
   key                     install your SSH key (no more password prompts)
@@ -93,6 +101,8 @@ func main() {
 	switch cmd {
 	case "version":
 		fmt.Println("remagic", version)
+	case "setup":
+		cmdSetup(mustConnect(host), catalogURL)
 	case "find":
 		cmdFind()
 	case "doctor":
@@ -260,6 +270,14 @@ func cmdDoctor(d *device.Device) {
 
 func cmdKey(d *device.Device) {
 	defer d.Close()
+	if err := ensureSSHKey(d); err != nil {
+		die("%v", err)
+	}
+}
+
+// ensureSSHKey installs the user's public key on the tablet, generating an
+// ed25519 pair in pure Go first if ~/.ssh has none — no ssh-keygen needed.
+func ensureSSHKey(d *device.Device) error {
 	home, _ := os.UserHomeDir()
 	var pub []byte
 	var err error
@@ -269,16 +287,53 @@ func cmdKey(d *device.Device) {
 		}
 	}
 	if err != nil {
-		die("no SSH public key found in ~/.ssh — create one with: ssh-keygen -t ed25519")
+		pub, err = generateSSHKey(filepath.Join(home, ".ssh"))
+		if err != nil {
+			return fmt.Errorf("no SSH key found and generating one failed: %w", err)
+		}
+		ok("generated a new SSH key (~/.ssh/id_ed25519)")
 	}
 	key := strings.TrimSpace(string(pub))
 	cmd := fmt.Sprintf(
 		"mkdir -p /home/root/.ssh && chmod 700 /home/root/.ssh && touch /home/root/.ssh/authorized_keys && chmod 600 /home/root/.ssh/authorized_keys && grep -qF '%s' /home/root/.ssh/authorized_keys || echo '%s' >> /home/root/.ssh/authorized_keys",
 		key, key)
 	if out, err := d.Run(cmd); err != nil {
-		die("installing key: %v: %s", err, out)
+		return fmt.Errorf("installing key: %w: %s", err, out)
 	}
 	ok("SSH key installed — no more password prompts.")
+	return nil
+}
+
+// generateSSHKey creates ~/.ssh/id_ed25519(.pub) and returns the public line.
+func generateSSHKey(sshDir string) ([]byte, error) {
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		return nil, err
+	}
+	pubK, privK, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	privPem, err := ssh.MarshalPrivateKey(privK, "remagic")
+	if err != nil {
+		return nil, err
+	}
+	sshPub, err := ssh.NewPublicKey(pubK)
+	if err != nil {
+		return nil, err
+	}
+	privPath := filepath.Join(sshDir, "id_ed25519")
+	if _, err := os.Stat(privPath); err == nil {
+		return nil, fmt.Errorf("%s exists but its .pub is missing — not overwriting", privPath)
+	}
+	if err := os.WriteFile(privPath, pem.EncodeToMemory(privPem), 0600); err != nil {
+		return nil, err
+	}
+	pubLine := bytes.TrimSpace(ssh.MarshalAuthorizedKey(sshPub))
+	pubLine = append(pubLine, []byte(" remagic\n")...)
+	if err := os.WriteFile(privPath+".pub", pubLine, 0644); err != nil {
+		return nil, err
+	}
+	return pubLine, nil
 }
 
 // cmdList shows what's in AppLoad (folders carrying an external.manifest.json;
@@ -356,42 +411,51 @@ func cmdInstall(d *device.Device, what, catalogURL string) {
 	}
 
 	step("looking up %q in the catalog", what)
-	cat, err := registry.Fetch(catalogURL)
-	if err != nil {
+	if err := installFromCatalog(d, what, catalogURL); err != nil {
 		die("%v", err)
 	}
-	app := cat.Find(what)
+}
+
+// installFromCatalog downloads a catalog app (checksum-verified) and installs
+// it via the stage-and-rename path. Shared by `install` and `setup`.
+func installFromCatalog(d *device.Device, id, catalogURL string) error {
+	cat, err := registry.Fetch(catalogURL)
+	if err != nil {
+		return err
+	}
+	app := cat.Find(id)
 	if app == nil {
 		var ids []string
 		for _, a := range cat.Apps {
 			ids = append(ids, a.ID)
 		}
-		die("no app %q. Available: %s", what, strings.Join(ids, ", "))
+		return fmt.Errorf("no app %q. Available: %s", id, strings.Join(ids, ", "))
 	}
 	step("downloading %s %s", app.Name, app.Version)
 	zip, err := app.Download()
 	if err != nil {
-		die("%v", err)
+		return err
 	}
 	defer os.Remove(zip)
 	content, err := os.ReadFile(zip)
 	if err != nil {
-		die("%v", err)
+		return err
 	}
 	step("installing onto the tablet")
 	if err := d.Push(content, "/tmp/remagic-app.zip", "644"); err != nil {
-		die("%v", err)
+		return err
 	}
 	cmd := fmt.Sprintf("rm -rf %s && mkdir -p %s && (unzip -oq /tmp/remagic-app.zip -d %s || busybox unzip -o /tmp/remagic-app.zip -d %s) && rm -f /tmp/remagic-app.zip",
 		stagingDir, stagingDir, stagingDir, stagingDir)
 	if out, err := d.Run(cmd); err != nil {
-		die("unpack failed: %v: %s", err, out)
+		return fmt.Errorf("unpack failed: %w: %s", err, out)
 	}
 	if out, err := d.Run(promoteCmd(app.ID)); err != nil {
-		die("install failed: %v: %s", err, out)
+		return fmt.Errorf("install failed: %w: %s", err, out)
 	}
 	ok("%s %s installed. On the tablet: open AppLoad and tap Reload.", app.Name, app.Version)
 	ok("(a running copy keeps the old version until relaunched)")
+	return nil
 }
 
 // Extracting straight into the app folder fails with ETXTBSY when the app is
@@ -486,6 +550,13 @@ func cmdWifi(d *device.Device, action string) {
 func cmdRepairSSH(d *device.Device) {
 	defer d.Close()
 	step("repairing the SSH key store")
+	if repairSSH(d) {
+		ok("host-key store restored — new SSH connections work again.")
+	}
+}
+
+// repairSSH runs the keystore fix over the live connection; reports success.
+func repairSSH(d *device.Device) bool {
 	script := `
 grep -qE "reMarkable (Ferrari|Chiappa|Tatsu)" /proc/device-tree/model || { echo "not a Paper Pro; nothing to do"; exit 0; }
 if ! mountpoint -q /etc; then
@@ -503,11 +574,8 @@ test -e /etc/dropbear/dropbear_ed25519_host_key && echo REPAIRED
 `
 	out, err := d.Run(script)
 	if err != nil {
-		die("repair failed: %v: %s", err, out)
+		warn("repair failed: %v: %s", err, strings.TrimSpace(out))
+		return false
 	}
-	if strings.Contains(out, "REPAIRED") {
-		ok("host-key store restored — new SSH connections work again.")
-	} else {
-		fmt.Print(out)
-	}
+	return strings.Contains(out, "REPAIRED")
 }

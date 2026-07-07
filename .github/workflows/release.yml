@@ -1,0 +1,42 @@
+# Build remagic CLI binaries for every desktop OS on each cli-v* tag.
+# Produces: remagic-{linux,darwin,windows}-{amd64,arm64}[.exe] + checksums.
+name: release-cli
+
+on:
+  push:
+    tags: ["cli-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: cli/go.mod
+      - name: Build all platforms
+        working-directory: cli
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#cli-}"
+          mkdir -p dist
+          for os in linux darwin windows; do
+            for arch in amd64 arm64; do
+              ext=""; [ "$os" = windows ] && ext=".exe"
+              out="dist/remagic-${os}-${arch}${ext}"
+              CGO_ENABLED=0 GOOS=$os GOARCH=$arch \
+                go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o "$out" .
+              echo "built $out"
+            done
+          done
+          (cd dist && sha256sum * > SHA256SUMS)
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" cli/dist/* \
+            --title "remagic CLI ${GITHUB_REF_NAME#cli-}" \
+            --notes "Prebuilt remagic CLI binaries. Install with the one-liner in the README, or download the file for your OS and run it."
