@@ -1,6 +1,8 @@
 *.tar.gz
 *.zip
 *.so
+!cli/embedded/
+!cli/embedded/*.so
 *.swp
 .DS_Store
 cli/remagic
