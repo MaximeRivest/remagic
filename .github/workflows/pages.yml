@@ -32,6 +32,8 @@ jobs:
           mkdir _site
           cp -R site/. _site/
           cp catalog.json _site/catalog.json
+          mkdir -p _site/assets/guide
+          cp docs/img/*.jpg _site/assets/guide/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
