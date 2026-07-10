@@ -15,6 +15,14 @@
       "version": "0.1.1",
       "url": "https://github.com/MaximeRivest/remagic/releases/download/v0.1.1/store-0.1.1.zip",
       "sha256": "0e0761dab7b70ae6402bb551347d85351457f1cc2a9a5df369a74d56553233b7"
+    },
+    {
+      "id": "paperterm",
+      "name": "PaperTerm",
+      "description": "A real terminal for your tablet, with an on-screen keyboard and fast partial e-ink updates.",
+      "version": "0.1.0",
+      "url": "https://github.com/MaximeRivest/paperterm/releases/download/v0.1.0/paperterm-0.1.0.zip",
+      "sha256": "d491b7bccffdb8d5e0dc45e3817e0ac4fe421347b0b0eb78f842d99819d6cff5"
     }
   ]
 }

@@ -205,8 +205,9 @@ them from the Store or with `remagic install <app>`.
   itself back in a flowing hand. A magical blackboard, powered by an LLM.
 - **Store** (in this repo, `cli/store/`) — browse and install apps right on
   the tablet, no computer needed.
-- **Paperterm** *(repo coming soon)* — a real terminal emulator with
-  pixel-wise partial e-ink updates. A shell on your tablet.
+- **[PaperTerm](https://github.com/maximerivest/paperterm)** — a real terminal
+  emulator with pixel-wise partial e-ink updates and an on-screen keyboard. A
+  shell on your tablet.
 - **Quill** *(repo coming soon)* — the low-level takeover display host the
   apps stand on: it drives the e-ink panel directly through the vendor
   waveform engine for instant-ink latency. More a library than an app.
