@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="remagic makes it simple to install community apps on the reMarkable Paper Pro.">
+  <meta property="og:title" content="remagic — make paper magical"><meta property="og:description" content="A friendly app platform for the reMarkable Paper Pro.">
+  <title>remagic — make paper magical</title>
+  <link rel="stylesheet" href="assets/style.css"><link rel="icon" href="assets/favicon.svg">
+</head>
+<body data-catalog-path="catalog.json">
+  <header class="wrap"><nav>
+    <a class="brand" href="./"><span class="spark">✦</span> remagic</a>
+    <div class="navlinks"><a href="#apps">Apps</a><a href="#install">Install</a><a href="https://github.com/maximerivest/remagic">Developers</a><a class="github" href="https://github.com/maximerivest/remagic">GitHub ↗</a></div>
+  </nav></header>
+
+  <main>
+    <div class="wrap hero">
+      <div>
+        <p class="eyebrow">Apps for reMarkable Paper Pro</p>
+        <h1>Make paper magical.</h1>
+        <p class="lead">A friendly way to open up your tablet, discover independent apps, and install them right from the page.</p>
+        <div class="actions"><a class="button" href="#install">Get remagic</a><a class="button light" href="#apps">Explore apps ↓</a></div>
+      </div>
+      <div class="tablet" aria-label="A reMarkable tablet showing the remagic Store"><div class="screen">
+        <h2>Your apps</h2><p>Built for paper, not ported to it.</p>
+        <div class="tiles"><img src="assets/riddle.png" alt=""><img src="assets/paperterm.png" alt=""><img src="assets/store.png" alt=""></div><span class="pen"></span>
+      </div></div>
+    </div>
+
+    <section class="apps" id="apps"><div class="wrap">
+      <div class="section-head"><div><p class="eyebrow">The collection</p><h2>Made for e-ink.</h2></div><p>Purpose-built experiments that treat the Paper Pro as a new kind of computer—not a dim laptop.</p></div>
+      <div class="app-grid">
+        <a class="app-card" href="apps/riddle/"><span class="version" data-version="riddle">v0.3.0</span><img src="assets/riddle.png" alt="The Diary icon"><h3>The Diary</h3><p>Write with the pen. The page drinks your ink, thinks, and writes back in a flowing hand.</p><span class="arrow">↗</span></a>
+        <a class="app-card" href="apps/paperterm/"><span class="version" data-version="paperterm">v0.1.0</span><img src="assets/paperterm.png" alt="PaperTerm icon"><h3>PaperTerm</h3><p>A real shell with an on-screen keyboard and pixel-wise partial e-ink updates.</p><span class="arrow">↗</span></a>
+        <a class="app-card" href="apps/store/"><span class="version" data-version="store">v0.1.1</span><img src="assets/store.png" alt="Store icon"><h3>Store</h3><p>Browse and install the collection directly on your tablet. No cable or computer required.</p><span class="arrow">↗</span></a>
+      </div>
+    </div></section>
+
+    <section class="steps" id="install"><div class="wrap">
+      <p class="eyebrow">From stock to spellbook</p><h2>One command. Then no computer.</h2>
+      <div class="steps-grid">
+        <div class="step"><span class="step-num">01 — PREPARE</span><h3>Enable developer mode</h3><p>Follow our visual walkthrough. reMarkable requires a factory reset, so sync your notebooks first.</p></div>
+        <div class="step"><span class="step-num">02 — CONNECT</span><h3>Run the installer</h3><p>Plug in over USB and run one command. remagic installs the launcher, persistence, and Store.</p></div>
+        <div class="step"><span class="step-num">03 — EXPLORE</span><h3>Open the Store</h3><p>From then on, discover and install checksum-verified apps right on the tablet.</p></div>
+      </div>
+      <div class="actions" style="margin-top:48px"><a class="button" style="background:var(--warm);color:var(--ink)" href="https://github.com/maximerivest/remagic#two-steps">Read the install guide ↗</a></div>
+    </div></section>
+
+    <section class="cta"><div class="wrap"><p class="eyebrow">Open by design</p><h2>Build something that belongs on paper.</h2><p>remagic is MIT licensed. The app format is a folder, the catalog is JSON, and the whole stack is open for tinkering.</p><a class="button" href="https://github.com/maximerivest/remagic/blob/main/docs/APP-SPEC.md">Build an app ↗</a></div></section>
+  </main>
+  <footer><div class="wrap"><span>remagic is an independent community project, not affiliated with reMarkable.</span><span><a href="https://github.com/maximerivest/remagic">Source</a> · MIT licensed</span></div></footer>
+  <script src="assets/catalog.js"></script>
+</body></html>

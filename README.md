@@ -2,6 +2,8 @@
 
 **Make your reMarkable Paper Pro magical.**
 
+**→ [Visit the remagic website](https://maximerivest.github.io/remagic/)**
+
 Turn on developer mode, run one command, and you have the AppLoad launcher and a
 place to run your own apps — no terminal wrangling. Built to lower the barrier
 for builders and tinkerers. Open source, MIT licensed.
