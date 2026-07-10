@@ -28,7 +28,7 @@ h1 { margin: 0; max-width: 800px; font-size: clamp(56px, 8vw, 105px); line-heigh
 .screen::before { content: "remagic"; display: block; padding-bottom: 16px; border-bottom: 1px solid #aaa; font: 700 15px system-ui,sans-serif; }
 .screen h2 { margin: 55px 0 8px; font-size: 35px; line-height: 1; }
 .screen p { margin: 0; color: #66645c; font-size: 16px; }
-.screen .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; margin-top: 35px; }
+.screen .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 35px; }
 .screen .tiles img { width: 100%; border: 1px solid #aaa; border-radius: 5px; }
 .screen .pen { position: absolute; right: 15px; bottom: -40px; width: 8px; height: 230px; border-radius: 8px; background: #353530; transform: rotate(-12deg); }
 section { padding: 100px 0; }
@@ -36,7 +36,7 @@ section { padding: 100px 0; }
 h2 { margin: 0; font-size: clamp(38px, 5vw, 64px); line-height: 1; letter-spacing: -.045em; }
 .section-head p { max-width: 430px; margin: 0; color: var(--muted); }
 .apps { border-top: 1px solid var(--line); }
-.app-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.app-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
 .app-card { position: relative; min-height: 390px; padding: 30px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--sheet); box-shadow: 0 5px 0 #ded9cb; text-decoration: none; transition: transform .18s; }
 .app-card:hover { transform: translateY(-5px); }
 .app-card img { width: 112px; height: 112px; border-radius: 16px; image-rendering: auto; }
