@@ -200,6 +200,11 @@ Software → Advanced) resets with developer-mode/factory resets; USB
 Once your tablet is open, here's what we build on top of it — install any of
 them from the Store or with `remagic install <app>`.
 
+- **[Chromium](https://github.com/maximerivest/chromium)** — a real browser on
+  e-ink: on-device Chromium driven over CDP. Tap to click, swipe to scroll,
+  type on the built-in keyboard, browse anywhere with the URL bar —
+  ChatGPT-ready. (The app installs from the catalog; the ~830 MB engine
+  installs once with the repo's bootstrap scripts.)
 - **[Riddle](https://github.com/maximerivest/riddle)** — an enchanted diary. Write
   with the pen; after a pause the page drinks your ink and an answer writes
   itself back in a flowing hand. A magical blackboard, powered by an LLM.
