@@ -1,0 +1,8 @@
+{
+  "id": "home",
+  "name": "Remagic Home",
+  "version": "0.1.0",
+  "description": "Takeover session launcher: hop between instant-ink apps without restarting xochitl.",
+  "application": "appload-launch.sh",
+  "qtfb": false
+}

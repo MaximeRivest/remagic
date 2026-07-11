@@ -215,8 +215,8 @@ them from the Store or with `remagic install <app>`.
 - **[PaperTerm](https://github.com/maximerivest/paperterm)** — a real terminal
   emulator with pixel-wise partial e-ink updates and an on-screen keyboard. A
   shell on your tablet.
-- **Quill** *(repo coming soon)* — the low-level takeover display host the
-  apps stand on: it drives the e-ink panel directly through the vendor
+- **[Quill](https://github.com/maximerivest/quill)** — the low-level takeover display host the
+  takeover apps stand on: it drives the e-ink panel directly through the vendor
   waveform engine for instant-ink latency. More a library than an app.
 
 Building your own? These are worked examples of an AppLoad app, from a full

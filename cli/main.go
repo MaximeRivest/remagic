@@ -155,6 +155,12 @@ func findHost() string {
 	}
 	step("no tablet on USB — sweeping local networks…")
 	probes := device.Discover(500 * time.Millisecond)
+	if len(probes) == 0 {
+		// Wi-Fi power save on the tablet routinely stretches the first
+		// connection past 500ms; sweep again, slower, before giving up.
+		step("nothing answered fast — sweeping again with a longer timeout…")
+		probes = device.Discover(2 * time.Second)
+	}
 	var tablets []*device.Probe
 	for _, p := range probes {
 		if p.IsPaperPro() {
@@ -192,6 +198,10 @@ func mustConnect(host string) *device.Device {
 func cmdFind() {
 	step("probing USB and local networks…")
 	probes := device.Discover(500 * time.Millisecond)
+	if len(probes) == 0 {
+		step("nothing answered fast — sweeping again with a longer timeout…")
+		probes = device.Discover(2 * time.Second)
+	}
 	if len(probes) == 0 {
 		warn("nothing found. Tablet awake? Developer mode on? Same network / USB plugged?")
 		return

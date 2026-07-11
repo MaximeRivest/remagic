@@ -7,7 +7,7 @@ package main
 //	2. ssh key     (generated if you have none, then installed)
 //	3. xovi bundle (loader + scripts, from asivery's pinned release)
 //	4. AppLoad     (only appload.so into extensions.d; shims into exthome)
-//	5. hashtable   (best-effort; only UI/QML mods need it)
+//	5. hashtable   (required for AppLoad's UI button; built non-interactively)
 //	6. tripletap   (power-button persistence; script streamed from the laptop
 //	                over verified TLS, executed on the device)
 //	7. ssh repair  (tripletap's installer knocks over the host-key mount on
@@ -113,16 +113,26 @@ rm -rf appload-unz appload.zip`); err != nil {
 	}
 	ok("AppLoad installed")
 
-	// ---- 5. Qt hashtable (best-effort; only UI/QML mods need it) -----------
-	step("rebuilding the Qt resource hashtable (best-effort)")
-	if _, err := d.Run("test -x /home/root/xovi/rebuild_hashtable"); err == nil {
-		if _, err := d.Run("timeout 120 /home/root/xovi/rebuild_hashtable </dev/null 2>/dev/null"); err == nil {
-			ok("hashtable rebuilt")
-		} else {
-			warn("couldn't rebuild non-interactively — AppLoad works without it")
-		}
+	// ---- 5. Qt hashtable -----------------------------------------------------
+	// Without the hashtab, qt-resource-rebuilder can't patch xochitl's QML and
+	// the AppLoad button never appears in the UI — this step is NOT optional.
+	// The stock rebuild_hashtable script is interactive (press-enter prompt,
+	// parses xochitl stdout), so we run our own non-interactive rebuild,
+	// detached via systemd: stopping/starting xochitl drops Wi-Fi SSH
+	// connections, so the work must survive our session and we poll for the
+	// result over fresh connections.
+	step("building the Qt resource hashtable (AppLoad's UI hook needs it; ~1-2 min)")
+	if err := rebuildHashtable(d); err != nil {
+		warn("hashtable build failed: %v", err)
+		warn("the AppLoad button may not appear — rerun 'remagic setup' or run /home/root/xovi/rebuild_hashtable over ssh")
 	} else {
-		ok("not needed by this bundle")
+		ok("hashtable built")
+	}
+	// The rebuild (and later steps) can drop the shared connection; heal it.
+	if _, err := d.Run("true"); err != nil {
+		if fresh, cerr := device.ConnectKeyOnly(d.Addr); cerr == nil {
+			*d = *fresh
+		}
 	}
 
 	// ---- 6. tripletap persistence -------------------------------------------
@@ -160,21 +170,112 @@ systemd-run --unit=xovi-firststart --collect --service-type=oneshot /home/root/x
 
 	// ---- 9. the Store ----------------------------------------------------------
 	step("installing the Store app (browse + install apps on the tablet itself)")
-	if err := installFromCatalog(d, "store", catalogURL); err != nil {
-		warn("store install skipped: %v — you can add it later: remagic install store", err)
+	storeOK := false
+	if err := installFromCatalog(d, "store", catalogURL); err == nil {
+		storeOK = true
 	} else {
+		// Starting xovi restarts xochitl, which can drop the long-lived SSH
+		// connection mid-push. A fresh connection almost always succeeds.
+		if fresh, cerr := device.ConnectKeyOnly(d.Addr); cerr == nil {
+			if err2 := installFromCatalog(fresh, "store", catalogURL); err2 == nil {
+				storeOK = true
+			} else {
+				warn("store install skipped: %v — you can add it later: remagic install store", err2)
+			}
+			fresh.Close()
+		} else {
+			warn("store install skipped: %v — you can add it later: remagic install store", err)
+		}
+	}
+	if storeOK {
 		ok("Store installed")
 	}
 
 	fmt.Println(`
-  ✓ Done. On the tablet: open AppLoad — the Store is inside.
+  ✓ Setup complete. Try it now, on the tablet:
+
+    1. Wake the tablet — the reMarkable home screen looks unchanged. That's
+       normal: your apps live inside the AppLoad launcher.
+    2. Open AppLoad from the tablet's main menu (the icon xovi added).
+       If you don't see it yet, triple-press the power button and wait a
+       few seconds — that toggles xovi on.`)
+	if storeOK {
+		fmt.Println(`    3. Inside AppLoad, open the Store to browse and install apps —
+       no computer needed from here on.`)
+	} else {
+		fmt.Println(`    3. Install apps from this computer with: remagic install <app>
+       (the on-tablet Store was skipped; add it with: remagic install store)`)
+	}
+	fmt.Println(`
+  Everyday commands:
 
     remagic install <app>     install apps from this computer
     remagic config <app>      configure an app from your browser
     remagic wifi on           make the cable optional
     remagic doctor            health check any time
 
+  Triple-press the power button any time to toggle xovi on/off.
   Re-run 'remagic setup' after a reMarkable OS update.`)
+}
+
+// rebuildHashtable builds qt-resource-rebuilder's hashtab non-interactively.
+// It runs xochitl once with only qt-resource-rebuilder loaded (in a scratch
+// XOVI_ROOT) and QMLDIFF_HASHTAB_CREATE set; qmldiff hashes every QML/resource
+// and writes the hashtab ~60-90s in. The whole thing runs as a transient
+// systemd unit because it stops xochitl, which can drop Wi-Fi SSH sessions —
+// we poll for completion over fresh connections instead.
+func rebuildHashtable(d *device.Device) error {
+	if _, err := d.Run("test -f /home/root/xovi/extensions.d/qt-resource-rebuilder.so"); err != nil {
+		return nil // bundle does no QML patching; nothing to build
+	}
+	const script = `#!/bin/bash
+set -u
+xovi=/home/root/xovi
+tab=$xovi/exthome/qt-resource-rebuilder/hashtab
+systemctl stop xochitl 2>/dev/null
+sleep 1
+export XOVI_ROOT=/tmp/xovi-hashtab
+rm -rf "$XOVI_ROOT"
+mkdir -p "$XOVI_ROOT/extensions.d"
+ln -s "$xovi/extensions.d/qt-resource-rebuilder.so" "$XOVI_ROOT/extensions.d/"
+mkdir -p "$(dirname "$tab")"
+rm -f "$tab"
+QMLDIFF_HASHTAB_CREATE="$tab" QML_DISABLE_DISK_CACHE=1 LD_PRELOAD="$xovi/xovi.so" /usr/bin/xochitl >/dev/null 2>&1 &
+pid=$!
+for i in $(seq 1 150); do [ -s "$tab" ] && break; sleep 1; done
+sleep 3
+kill $pid 2>/dev/null; sleep 2; kill -9 $pid 2>/dev/null
+rm -rf "$XOVI_ROOT" /tmp/remagic-hashtab.sh
+[ -s "$tab" ]
+`
+	if err := d.Push([]byte(script), "/tmp/remagic-hashtab.sh", "755"); err != nil {
+		return err
+	}
+	if out, err := d.Run(`systemctl stop remagic-hashtab 2>/dev/null; systemctl reset-failed remagic-hashtab 2>/dev/null; \
+systemd-run --unit=remagic-hashtab --collect /bin/bash /tmp/remagic-hashtab.sh`); err != nil {
+		return fmt.Errorf("launch rebuild unit: %v: %s", err, tail(out, 200))
+	}
+	// Poll over fresh connections; the unit stops xochitl, which can kill
+	// existing SSH sessions (observed over Wi-Fi).
+	deadline := time.Now().Add(4 * time.Minute)
+	for time.Now().Before(deadline) {
+		time.Sleep(5 * time.Second)
+		fresh, err := device.ConnectKeyOnly(d.Addr)
+		if err != nil {
+			continue // device busy restarting xochitl; keep waiting
+		}
+		out, _ := fresh.Run("systemctl is-active remagic-hashtab || true")
+		if !strings.Contains(out, "active") || strings.Contains(out, "inactive") || strings.Contains(out, "failed") {
+			_, terr := fresh.Run("test -s /home/root/xovi/exthome/qt-resource-rebuilder/hashtab")
+			fresh.Close()
+			if terr != nil {
+				return fmt.Errorf("rebuild finished but no hashtab was written")
+			}
+			return nil
+		}
+		fresh.Close()
+	}
+	return fmt.Errorf("timed out after 4 minutes")
 }
 
 func isPaperPro(model string) bool {

@@ -6,3 +6,5 @@
 cli/remagic
 cli/store/store-arm64
 cli/store/dist/
+home/build/
+home/dist/
