@@ -42,6 +42,7 @@ usage: remagic <command> [args]
   config <app>            configure an app from your browser — prints a QR
                           code so you can use your phone's keyboard
   wifi on|off|status      SSH over Wi-Fi, so the cable is only ever needed once
+  rebuild-hashtab         rebuild the Qt resource hashtab (needed after OS updates)
   repair-ssh              fix the "connection reset" SSH wedge in-band
   publish [folder]        zip an app folder, create a GitHub release (via gh),
                           and print/update its catalog entry
@@ -126,6 +127,8 @@ func main() {
 			die("usage: remagic wifi on|off|status")
 		}
 		cmdWifi(mustConnect(host), args[0])
+	case "rebuild-hashtab":
+		cmdRebuildHashtab(mustConnect(host))
 	case "repair-ssh":
 		cmdRepairSSH(mustConnect(host))
 	case "publish":
@@ -235,6 +238,19 @@ func cmdDoctor(d *device.Device) {
 	}
 	check("xovi installed", "test -d /home/root/xovi")
 	check("AppLoad installed", "test -f /home/root/xovi/extensions.d/appload.so")
+	if _, err := d.Run("test -f /home/root/xovi/extensions.d/qt-resource-rebuilder.so"); err == nil {
+		if hasHashtab(d) {
+			ok("Qt resource hashtab present")
+		} else {
+			warn("Qt resource hashtab missing — AppLoad will crash xochitl on OS 3.27+")
+			warn("Run: remagic rebuild-hashtab")
+		}
+	}
+	if _, err := d.Run(`pid=$(pidof xochitl 2>/dev/null | awk '{print $1}') && test -n "$pid" && grep -q xovi.so /proc/$pid/maps`); err == nil {
+		ok("xovi active in running xochitl")
+	} else {
+		warn("xovi not loaded in xochitl (stock mode, or crash-looping)")
+	}
 	// Any of the community persistence flavors counts.
 	if _, err := d.Run("systemctl is-enabled xovi-tripletap 2>/dev/null || systemctl is-enabled xovi-always-on 2>/dev/null || systemctl is-enabled xovi-boot 2>/dev/null"); err == nil {
 		ok("boot persistence (tripletap / always-on unit)")
@@ -547,6 +563,21 @@ func cmdWifi(d *device.Device, action string) {
 // dropbear host-key bind mount down with it — new connections then die at key
 // exchange until reboot. Restores the /etc overlay, the key mount, and
 // read-only /.
+func cmdRebuildHashtab(d *device.Device) {
+	defer d.Close()
+	step("rebuilding the Qt resource hashtable")
+	if !rebuildHashtab(d) {
+		die("hashtab rebuild failed — see messages above")
+	}
+	step("starting xovi")
+	if out, err := d.Run(`systemctl stop xovi-firststart 2>/dev/null; systemctl reset-failed xovi-firststart 2>/dev/null; \
+systemd-run --unit=xovi-firststart --collect --service-type=oneshot /home/root/xovi/start`); err != nil {
+		warn("couldn't start xovi (%s) — triple-press power", tail(out, 120))
+	} else {
+		ok("xovi started — AppLoad should appear on the tablet")
+	}
+}
+
 func cmdRepairSSH(d *device.Device) {
 	defer d.Close()
 	step("repairing the SSH key store")

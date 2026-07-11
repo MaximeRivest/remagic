@@ -7,7 +7,7 @@ package main
 //	2. ssh key     (generated if you have none, then installed)
 //	3. xovi bundle (loader + scripts, from asivery's pinned release)
 //	4. AppLoad     (only appload.so into extensions.d; shims into exthome)
-//	5. hashtable   (best-effort; only UI/QML mods need it)
+//	5. hashtable   (required for AppLoad on OS 3.27+)
 //	6. tripletap   (power-button persistence; script streamed from the laptop
 //	                over verified TLS, executed on the device)
 //	7. ssh repair  (tripletap's installer knocks over the host-key mount on
@@ -89,41 +89,59 @@ mv -f /home/root/xovi/inactive-extensions/xovi-message-broker.so /home/root/xovi
 	ok("xovi installed at /home/root/xovi")
 
 	// ---- 4. AppLoad ---------------------------------------------------------
-	step("downloading AppLoad")
-	appload, err := fetchURL(apploadURL)
-	if err != nil {
-		die("download AppLoad: %v", err)
-	}
-	ok("%d KB", len(appload)/1024)
-	step("installing the AppLoad launcher")
-	if err := d.Push(appload, "/tmp/appload.zip", "644"); err != nil {
-		die("%v", err)
-	}
-	// ONLY appload.so is a xovi extension → extensions.d/. The zip also
-	// carries shims/qtfb-shim*.so (runtime pieces for windowed apps) which
-	// must NOT land in extensions.d/ or xovi tries to load them and errors.
-	if out, err := d.Run(`cd /tmp && rm -rf appload-unz && mkdir appload-unz && \
+	osv, _ := d.Run(`. /etc/os-release 2>/dev/null; printf %s "$IMG_VERSION"`)
+	osv = strings.TrimSpace(osv)
+	if blob, label := apploadSOForOS(osv); blob != nil {
+		step("installing AppLoad for OS %s", label)
+		if err := d.Push(blob, "/home/root/xovi/extensions.d/appload.so", "755"); err != nil {
+			die("%v", err)
+		}
+		step("downloading AppLoad shims")
+		apploadZip, err := fetchURL(apploadURL)
+		if err != nil {
+			die("download AppLoad shims: %v", err)
+		}
+		if err := d.Push(apploadZip, "/tmp/appload.zip", "644"); err != nil {
+			die("%v", err)
+		}
+		if out, err := d.Run(`cd /tmp && rm -rf appload-unz && mkdir appload-unz && \
+(unzip -oq appload.zip -d appload-unz || busybox unzip -o appload.zip -d appload-unz) && \
+mkdir -p /home/root/xovi/exthome/appload && \
+if [ -d appload-unz/shims ]; then cp -rf appload-unz/shims /home/root/xovi/exthome/appload/; fi && \
+if [ -d appload-unz/exthome ]; then cp -rf appload-unz/exthome/. /home/root/xovi/exthome/; fi && \
+rm -rf appload-unz appload.zip`); err != nil {
+			die("install AppLoad shims: %v: %s", err, out)
+		}
+		ok("AppLoad installed (3.28-compatible build)")
+	} else {
+		step("downloading AppLoad")
+		appload, err := fetchURL(apploadURL)
+		if err != nil {
+			die("download AppLoad: %v", err)
+		}
+		ok("%d KB", len(appload)/1024)
+		step("installing the AppLoad launcher")
+		if err := d.Push(appload, "/tmp/appload.zip", "644"); err != nil {
+			die("%v", err)
+		}
+		// ONLY appload.so is a xovi extension → extensions.d/. The zip also
+		// carries shims/qtfb-shim*.so (runtime pieces for windowed apps) which
+		// must NOT land in extensions.d/ or xovi tries to load them and errors.
+		if out, err := d.Run(`cd /tmp && rm -rf appload-unz && mkdir appload-unz && \
 (unzip -oq appload.zip -d appload-unz || busybox unzip -o appload.zip -d appload-unz) && \
 cp -f appload-unz/appload.so /home/root/xovi/extensions.d/ && \
 mkdir -p /home/root/xovi/exthome/appload && \
 if [ -d appload-unz/shims ]; then cp -rf appload-unz/shims /home/root/xovi/exthome/appload/; fi && \
 if [ -d appload-unz/exthome ]; then cp -rf appload-unz/exthome/. /home/root/xovi/exthome/; fi && \
 rm -rf appload-unz appload.zip`); err != nil {
-		die("install AppLoad: %v: %s", err, out)
-	}
-	ok("AppLoad installed")
-
-	// ---- 5. Qt hashtable (best-effort; only UI/QML mods need it) -----------
-	step("rebuilding the Qt resource hashtable (best-effort)")
-	if _, err := d.Run("test -x /home/root/xovi/rebuild_hashtable"); err == nil {
-		if _, err := d.Run("timeout 120 /home/root/xovi/rebuild_hashtable </dev/null 2>/dev/null"); err == nil {
-			ok("hashtable rebuilt")
-		} else {
-			warn("couldn't rebuild non-interactively — AppLoad works without it")
+			die("install AppLoad: %v: %s", err, out)
 		}
-	} else {
-		ok("not needed by this bundle")
+		ok("AppLoad installed")
 	}
+
+	// ---- 5. Qt hashtable (AppLoad hard-crashes xochitl without it on 3.27+) -
+	step("rebuilding the Qt resource hashtable")
+	hashtabOK := rebuildHashtab(d)
 
 	// ---- 6. tripletap persistence -------------------------------------------
 	step("installing power-button persistence (xovi-tripletap)")
@@ -151,7 +169,10 @@ rm -rf appload-unz appload.zip`); err != nil {
 
 	// ---- 8. start xovi now ---------------------------------------------------
 	step("starting xovi (no reboot needed)")
-	if out, err := d.Run(`systemctl stop xovi-firststart 2>/dev/null; systemctl reset-failed xovi-firststart 2>/dev/null; \
+	if !hashtabOK {
+		warn("skipping xovi start — without the hashtab AppLoad crash-loops xochitl on this OS")
+		warn("after rebuild: remagic rebuild-hashtab   then triple-press power")
+	} else if out, err := d.Run(`systemctl stop xovi-firststart 2>/dev/null; systemctl reset-failed xovi-firststart 2>/dev/null; \
 systemd-run --unit=xovi-firststart --collect --service-type=oneshot /home/root/xovi/start`); err != nil {
 		warn("couldn't start immediately (%s) — triple-press power, or reboot", tail(out, 120))
 	} else {

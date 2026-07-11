@@ -55,22 +55,24 @@ rm_ssh 'cd /tmp && rm -rf appload-unz && mkdir appload-unz && \
     || die "failed to install AppLoad"
 ok "AppLoad installed."
 
-# --- 3. rebuild the Qt hashtable (needed by qt-resource-rebuilder) -----------
+# --- 3. rebuild the Qt hashtable (required for AppLoad on OS 3.27+) ----------
 # qt-resource-rebuilder needs a per-OS-version hashtable, rebuilt on first
-# install and after every OS update. The bundle ships upstream's
-# `rebuild_hashtable`, which drives xochitl to capture it. AppLoad itself does
-# not require it — only UI/QML mods do — so this is best-effort and never fatal.
+# install and after every OS update. Upstream's rebuild_hashtable blocks on
+# "press enter"; without the hashtab AppLoad crash-loops xochitl on 3.27+.
 step "Rebuilding the Qt resource hashtable"
-if rm_ssh 'test -x /home/root/xovi/rebuild_hashtable'; then
-    if rm_ssh '/home/root/xovi/rebuild_hashtable </dev/null' 2>/dev/null; then
+HASHTAB_OK=0
+if rm_ssh 'test -f /home/root/xovi/extensions.d/qt-resource-rebuilder.so'; then
+    if rm_scp "$HERE/rebuild-hashtab.sh" "$(rm_dest):/tmp/rebuild-hashtab.sh" \
+        && rm_ssh 'bash /tmp/rebuild-hashtab.sh && rm -f /tmp/rebuild-hashtab.sh'; then
         ok "Hashtable rebuilt."
+        HASHTAB_OK=1
     else
-        warn "Couldn't rebuild the hashtable non-interactively."
-        info "AppLoad still works. For UI/QML mods, run this once by hand:"
-        info "  ssh $(rm_dest) '/home/root/xovi/rebuild_hashtable'  then reboot."
+        warn "Hashtable rebuild failed — AppLoad will crash xochitl without it."
+        info "Retry from your computer:  remagic rebuild-hashtab"
     fi
 else
-    info "No rebuild_hashtable in this bundle — skipping (AppLoad doesn't need it)."
+    info "No qt-resource-rebuilder in this bundle — skipping."
+    HASHTAB_OK=1
 fi
 
 # --- 4. persistence: tripletap (blessed) -------------------------------------
@@ -102,9 +104,13 @@ fi
 
 # --- 5. start it now ---------------------------------------------------------
 step "Starting xovi now (no reboot needed)"
-rm_ssh 'systemd-run --unit=xovi-firststart --collect --service-type=oneshot /home/root/xovi/start 2>/dev/null' \
-    && ok "xovi started." \
-    || warn "Couldn't start immediately; triple-press power, or reboot."
+if [ "$HASHTAB_OK" = 1 ]; then
+    rm_ssh 'systemd-run --unit=xovi-firststart --collect --service-type=oneshot /home/root/xovi/start 2>/dev/null' \
+        && ok "xovi started." \
+        || warn "Couldn't start immediately; triple-press power, or reboot."
+else
+    warn "Skipping xovi start until the hashtab is rebuilt (remagic rebuild-hashtab)."
+fi
 
 cat <<EOF
 
