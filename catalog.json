@@ -31,6 +31,14 @@
       "version": "0.1.1",
       "url": "https://github.com/MaximeRivest/remagic/releases/download/v0.1.1/store-0.1.1.zip",
       "sha256": "0e0761dab7b70ae6402bb551347d85351457f1cc2a9a5df369a74d56553233b7"
+    },
+    {
+      "id": "badapple",
+      "name": "Bad Apple",
+      "description": "Bad Apple at max FPS on e-ink — a benchmark that plays the whole video through quill's batched per-tile fast path, the way Wenting's Modos monitor does.",
+      "version": "0.1.0",
+      "url": "https://github.com/MaximeRivest/badapple/releases/download/v0.1.0/badapple-0.1.0.zip",
+      "sha256": "7706b6d8cc414a4cab0d61d9f077e581ef480833c664e93a1aabeb2eda27405d"
     }
   ]
 }
